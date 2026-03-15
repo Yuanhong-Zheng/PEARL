@@ -1,3 +1,3 @@
-# PSVBench
+# PEARL
 
-Private repository bootstrap. Initial commit contains README only.
+Code for this project will be open-sourced within two weeks.
