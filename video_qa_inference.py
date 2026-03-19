@@ -80,10 +80,7 @@ class VideoQAInference:
         model_path = str(_resolve_path(model_path, project_root))
         
         self.num_neighbor = num_neighbor
-        print(f"邻居数量设置: {num_neighbor} (每个检索clip左右各添加 {num_neighbor} 个邻居)")
-        
         self.enable_rotation = enable_rotation
-        print(f"轮换评估模式: {'启用' if enable_rotation else '关闭'}")
         
         self.output_dir = Path(output_dir).resolve()
         if self.output_dir.exists():
@@ -100,28 +97,20 @@ class VideoQAInference:
 
         concept_db_path = annotation_cache_dir / "concept_db.json"
         frame_dir = annotation_cache_dir
-        
-        print(f"  Annotation: {annotation_name}")
-        print(f"  数据库路径: {concept_db_path}")
-        print(f"  帧存储路径: {frame_dir}")
         self.concept_db = ConceptDatabase(db_path=str(concept_db_path), frame_dir=str(frame_dir))
 
-        print(f"\n  从 annotation 文件提取概念定义...")
         self.concept_db.add_concepts_from_annotation_file(
             annotation_file=self.annotation_path,
             clear_before_add=clear_concept_db
         )
         print(f"✓ 概念数据库初始化完成，共 {len(self.concept_db.data['concepts'])} 个概念")
         
-        print(f"\n  [概念替换] 正在为每个概念生成/更新 retrieval_description...")
         temp_client = OpenAI(api_key="EMPTY", base_url=api_base_url, timeout=3600)
         
         for concept in self.concept_db.data['concepts']:
             concept_name = concept.get('concept_name', 'Unknown')
             frame_path = concept.get('frame_path', '')
             original_description = concept.get('description', '')
-            
-            print(f"    为概念 '{concept_name}' 生成 retrieval_description...")
             retrieval_desc = generate_distinctive_description(
                 client=temp_client,
                 model_path=model_path,
@@ -130,7 +119,6 @@ class VideoQAInference:
                 original_description=original_description
             )
             concept['retrieval_description'] = retrieval_desc
-            print(f"    ✓ {concept_name}: {retrieval_desc}")
 
         self.concept_db._save_db()
         self.concept_retrieval_map = {}
@@ -139,12 +127,9 @@ class VideoQAInference:
             desc = concept.get('retrieval_description', '')
             if name and desc:
                 self.concept_retrieval_map[name] = desc
-        print(f"  ✓ 概念替换映射构建完成，共 {len(self.concept_retrieval_map)} 个映射")
 
         print("\n[2/3] 初始化 Clip 记忆系统...")
-        embedding_type = "视频 Embedding" if use_video_embedding else "文本 Embedding"
         embeddings_cache_dir = annotation_cache_dir
-        print(f"  Embeddings 缓存目录: {embeddings_cache_dir}")
         
         self.clip_memory = ClipMemory(
             json_path=self.clips_info_path,
@@ -292,12 +277,8 @@ Requirements:
             片段信息列表
         """
         query = extract_question_without_options(question).strip()
-        print(f"  原始 query: {query}")
-        
         if self.concept_retrieval_map:
             query = self.replace_concepts_with_descriptions(query)
-            print(f"  替换后 query: {query}")
-        print(f"使用 {query} 检索相关视频片段")
         if max_time:
             max_seconds = time_to_seconds(max_time)
             original_clips_data = self.clip_memory.clips_data
@@ -316,8 +297,6 @@ Requirements:
 
             self.clip_memory.clips_data = filtered_clips
             self.clip_memory.clip_embeddings = original_clip_embeddings[filtered_indices]
-            
-            print(f"  时间过滤: 从 {len(original_clips_data)} 个片段中筛选出 {len(filtered_clips)} 个（end_time < {max_time}）")
             results = self.clip_memory.search(query, top_k=top_k)
 
             self.clip_memory.clips_data = original_clips_data
@@ -341,7 +320,6 @@ Requirements:
             return []
         
         if self.num_neighbor == 0:
-            print(f"\n  邻居数量为 0，不扩展邻居，直接使用检索结果")
             clips = [clip.copy() for clip in retrieved_clips]
             clips.sort(key=lambda x: x['start_time'])
             
@@ -360,11 +338,8 @@ Requirements:
         
         expanded_clip_ids = set()
         
-        print(f"\n  扩展检索到的 {len(retrieved_clips)} 个clip，每个clip左右各添加 {self.num_neighbor} 个邻居...")
-        
         for clip in retrieved_clips:
             clip_id = clip['clip_id']
-            print(f"    检索到的 Clip ID: {clip_id}")
             expanded_clip_ids.add(clip_id)
 
             if clip_id not in clip_id_to_index:
@@ -372,28 +347,18 @@ Requirements:
                 continue
             
             current_index = clip_id_to_index[clip_id]
-            added_prev = []
             for offset in range(1, self.num_neighbor + 1):
                 prev_index = current_index - offset
                 if prev_index >= 0:
                     prev_clip = self.clip_memory.clips_data[prev_index]
                     prev_clip_id = prev_clip['clip_id']
                     expanded_clip_ids.add(prev_clip_id)
-                    added_prev.append(prev_clip_id)
-            
-            if added_prev:
-                print(f"      添加前邻居 Clip ID: {added_prev}")
-            added_next = []
             for offset in range(1, self.num_neighbor + 1):
                 next_index = current_index + offset
                 if next_index < len(self.clip_memory.clips_data):
                     next_clip = self.clip_memory.clips_data[next_index]
                     next_clip_id = next_clip['clip_id']
                     expanded_clip_ids.add(next_clip_id)
-                    added_next.append(next_clip_id)
-            
-            if added_next:
-                print(f"      添加后邻居 Clip ID: {added_next}")
 
         expanded_clips = []
         for clip in self.clip_memory.clips_data:
@@ -407,9 +372,6 @@ Requirements:
             filtered_count = original_count - len(expanded_clips)
             if filtered_count > 0:
                 print(f"  过滤掉 {filtered_count} 个与current clip重叠的片段")
-        
-        print(f"  扩展完成: {len(retrieved_clips)} 个检索clip → {len(expanded_clips)} 个总clip（包括邻居）")
-        print(f"  最终clip ID列表: {[clip['clip_id'] for clip in expanded_clips]}")
         
         return expanded_clips
     
@@ -541,15 +503,12 @@ Requirements:
 
         print("\n[步骤 1] 提取概念...")
         concepts = extract_concepts(question)
-        print(f"  找到 {len(concepts)} 个概念: {concepts}")
 
         print("\n[步骤 2] 检索概念信息...")
         concepts_info = []
         for concept_name in concepts:
-            print(f"  检索概念: {concept_name}")
             concept_info = self.retrieve_concept_info(concept_name)
             if concept_info:
-                print(f"    ✓ 找到: {concept_info['frame_path']}")
                 concepts_info.append(concept_info)
         assert len(concepts)!=0, "问题中未提取到任何概念，请检查问题格式是否正确，概念应使用 {} 包围"
         clips_info = []
@@ -562,12 +521,6 @@ Requirements:
             max_time=question_time,
             top_k=top_k_clips
         )
-        
-        print(f"\n  检索到的top {len(retrieved_clips)} 个clip:")
-        for i, clip in enumerate(retrieved_clips, 1):
-            print(f"  #{i} Clip ID: {clip['clip_id']}, 相似度: {clip['similarity_score']:.4f}")
-            print(f"      时间范围: {clip['start_time']:.2f}s - {clip['end_time']:.2f}s")
-            print(f"      描述: {clip['description']}")
 
         current_clip_info_temp = self.get_clip_at_time(time_seconds)
         if current_clip_info_temp is not None:
@@ -576,11 +529,6 @@ Requirements:
             current_clip_start_time = max(0, time_seconds - 1)
 
         clips_info = self.expand_clips_with_neighbors(retrieved_clips, current_clip_start_time)
-        
-        print(f"\n  扩展后的clip列表:")
-        for i, clip in enumerate(clips_info, 1):
-            print(f"  #{i} Clip ID: {clip['clip_id']}")
-            print(f"      时间范围: {clip['start_time']:.2f}s - {clip['end_time']:.2f}s")
 
         print("\n[步骤 4] 提取当前视频片段...")
         current_clip_path = None
@@ -594,14 +542,10 @@ Requirements:
         else:
             clip_start_time = current_clip_info['start_time']
             clip_id_str = str(current_clip_info['clip_id'])
-            print(f"  当前时间 {time_seconds:.2f}s 所在片段: Clip ID {current_clip_info['clip_id']}")
-            print(f"  片段时间范围: {clip_start_time:.2f}s - {current_clip_info['end_time']:.2f}s")
 
         source_video = self.clip_memory.source_video
         current_clip_filename = f"qa_{qa_id}_current_{clip_id_str}_{clip_start_time:.2f}_{time_seconds:.2f}.mp4"
         current_clip_path = str((self.output_dir / current_clip_filename).resolve())
-        
-        print(f"  提取视频: {clip_start_time:.2f}s -> {time_seconds:.2f}s (时长: {time_seconds - clip_start_time:.2f}s)")
         success = extract_video_clip(
             source_video=source_video,
             start_time=clip_start_time,
@@ -613,7 +557,6 @@ Requirements:
 
         print("\n[步骤 5] 构建模型输入...")
         messages = self.build_messages(question, concepts_info, clips_info, current_clip_path)
-        print(f"  ✓ Messages 构建完成，共 {len(messages[0]['content'])} 个元素")
         rotation_enabled_for_qa = (
             self.enable_rotation
             and has_complete_option_fields(qa_item)
@@ -643,7 +586,6 @@ Requirements:
                     "is_correct": is_correct,
                     "raw_answer": answer,
                 })
-                print(f"  轮换到 {target_gt}: predicted={predicted!r}, correct={is_correct}")
 
             print(f"  四次全部正确: {all_correct}")
             final_answer = f"<ans>{original_gt}</ans>" if all_correct else ""
@@ -700,10 +642,8 @@ Requirements:
             current_time_count = len([qa for qa in target_qas if qa.get('qa_type') == 'current-time qa'])
             
             print(f"\n处理视频: {video_path}")
-            print(f"总问题数: {len(timestamps)}")
             print(f"past-time qa 问题数: {past_time_count}")
             print(f"current-time qa 问题数: {current_time_count}")
-            print(f"跳过其他类型问题: {len(timestamps) - len(target_qas)}")
             
             processed_timestamps = []
             
@@ -811,17 +751,13 @@ def main():
     cache_dir = _resolve_path(args.cache_dir, project_root)
     output_path = _resolve_path(args.output_path, project_root)
     
-    print(f"\n读取 annotation 文件: {annotation_path}")
     with open(annotation_path, 'r', encoding='utf-8') as f:
         annotations = json.load(f)
     
     video_path = annotations[0]['video_path']
-    print(f"从 annotation 文件中提取到 video_path: {video_path}")
     video_name = Path(video_path).stem
-    print(f"视频文件名: {video_name}")
     
     clips_info_path = str((clips_base_dir / video_name / f"{video_name}_clips_info.json").resolve())
-    print(f"自动推导的 clips_info_path: {clips_info_path}\n")
     
     inference_system = VideoQAInference(
         annotation_path=str(annotation_path),
