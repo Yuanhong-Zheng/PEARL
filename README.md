@@ -82,11 +82,11 @@ Run the scene splitting script first:
 bash scripts/split_scene.sh
 ```
 
-This script scans [`data/video-level/`](/mdr5/user/quantaalpha/jiangtianyi/PEARL/data/video-level) for `.mp4` files and invokes [`video_scene_splitter.py`](/mdr5/user/quantaalpha/jiangtianyi/PEARL/video_scene_splitter.py) to generate scene clips and clip metadata for each video.
+This script scans [`data/frame-level/`](/mdr5/user/quantaalpha/jiangtianyi/PEARL/data/frame-level) for `.mp4` files and invokes [`video_scene_splitter.py`](/mdr5/user/quantaalpha/jiangtianyi/PEARL/video_scene_splitter.py) to generate scene clips and clip metadata for each video.
 
 For evaluation, the inference script expects:
 
-- annotations under [`data/frame-level/annotations_filtered/`](/mdr5/user/quantaalpha/jiangtianyi/PEARL/data/frame-level/annotations_filtered)
+- annotations under [`data/frame-level/annotations/`](/mdr5/user/quantaalpha/jiangtianyi/PEARL/data/frame-level/annotations/)
 - scene clips under [`data/frame-level/output_clips/`](/mdr5/user/quantaalpha/jiangtianyi/PEARL/data/frame-level/output_clips)
 
 ### 2. Start The Model Servers
