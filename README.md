@@ -39,10 +39,11 @@ Download the archive from one of the following mirrors:
 - [Hugging Face](#)
 - [ModelScope](https://www.modelscope.cn/datasets/YuanhongZheng/PEARL-Data)
 
-After downloading, place the archive under the project root and extract it:
+After downloading, place the split archives under the project root, merge them, and then extract:
 
 ```bash
-tar -xzf frame-level.tar.gz -C data
+cat frame-level.tar.gz.part* > frame-level.tar.gz
+tar -xzf frame-level.tar.gz
 ```
 
 After extraction, the dataset should be available under `data/frame-level/`.
