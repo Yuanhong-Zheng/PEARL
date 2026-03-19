@@ -1,8 +1,7 @@
-<p align="center">
-  <img src="assets/logo.png" alt="PEARL logo" width="160">
-</p>
-
-<h1 align="center">PEARL: Personalized Streaming Video Understanding Model</h1>
+<h1 align="center">
+  <img src="assets/logo.png" alt="PEARL logo" width="72" style="vertical-align: middle; margin-right: 12px;">
+  <span style="vertical-align: middle;">PEARL: Personalized Streaming Video Understanding Model</span>
+</h1>
 
 ---
 
