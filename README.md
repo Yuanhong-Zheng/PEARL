@@ -30,8 +30,8 @@ conda install -c conda-forge ffmpeg
 The repository vendors two local dependencies under `third_party/`.
 
 ```bash
-pip install --no-deps -e third_party/qwen-vl-utils
-pip install --no-deps -e third_party/Qwen3-VL-Embedding
+pip install -e third_party/qwen-vl-utils --no-deps
+pip install -e third_party/Qwen3-VL-Embedding --no-deps
 ```
 
 This makes imports such as `qwen_vl_utils` and the local Qwen3-VL embedding code available to the PEARL servers.
