@@ -98,14 +98,12 @@ Launch the VLM server and the embedding server on all GPUs before inference:
 bash scripts/start_multi_gpu_servers.sh 8
 ```
 
-Replace `8` with the number of GPUs you want to use. The server launcher starts one VLM server and one embedding server per GPU, and the inference script will automatically wait until all `/health` checks succeed before starting.
+Replace `8` with the number of GPUs you want to use.
 
 By default, the launcher uses:
 
 - `models/Qwen3-VL-8B-Instruct` for `server/qwenvl_flask_server.py`
 - `models/llava-onevision-qwen2-7b-ov-hf` for `server/llava_ov_flask_server.py`
-
-Server logs are written to `server/logs/`.
 
 ### 3. Run Inference
 
@@ -114,13 +112,6 @@ After all servers are ready, run:
 ```bash
 bash scripts/eval_qwen.sh 8
 ```
-
-This script:
-
-- reads annotation files from `data/frame-level/annotations_filtered/`
-- reads scene clips from `data/frame-level/output_clips/`
-- distributes the annotation files across GPUs
-- writes per-file prediction outputs and evaluation files to `output_results/test/qwen3vl_k4_n1_pre0_fps1/`
 
 For each annotation file, the script produces:
 
