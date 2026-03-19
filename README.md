@@ -1,6 +1,8 @@
 # PEARL
 
-## Install
+---
+
+## 🛠️ Install
 
 ### 1. Create a Python environment
 
@@ -32,7 +34,9 @@ pip install -e third_party/qwen-vl-utils --no-deps
 pip install -e third_party/Qwen3-VL-Embedding --no-deps
 ```
 
-## Dataset
+---
+
+## 📦 Dataset
 
 Download the archive from one of the following mirrors:
 
@@ -58,7 +62,9 @@ data/
     videos/
 ```
 
-## Models
+---
+
+## 🤖 Models
 
 Please download the following models and place them under `models/`:
 
@@ -66,7 +72,9 @@ Please download the following models and place them under `models/`:
 - `Qwen3-VL-Embedding-2B`
 - `llava-onevision-qwen2-7b-ov-hf` (optional)
 
-## Evaluation
+---
+
+## 📊 Evaluation
 
 The evaluation pipeline has four stages:
 
@@ -89,6 +97,8 @@ For evaluation, the inference script expects:
 
 - annotations under `data/frame-level/annotations/`
 - scene clips under `data/frame-level/output_clips/`
+
+> For evaluation, make sure both directories are prepared before starting inference.
 
 ### 2. Start The Model Servers
 
@@ -132,7 +142,9 @@ This command reads all `*_evaluation.json` files in the result directory and rep
 - current-time QA accuracy
 - past-time QA accuracy
 
-## TODO
+---
+
+## ✅ TODO
 
 - [ ] Video-Level Data and Evaluation
 - [ ] Live Streaming Demo
