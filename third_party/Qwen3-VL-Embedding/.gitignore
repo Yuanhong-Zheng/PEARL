@@ -1,0 +1,18 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Others
+/results/
+/models/
+/data/evaluation/mmeb_v2/*
+!/data/evaluation/mmeb_v2/download_data.sh
+tmp*
+.ipynb_checkpoints/

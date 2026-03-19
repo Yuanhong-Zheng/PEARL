@@ -1,0 +1,30 @@
+import os
+import torch
+import logging
+
+logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s [%(name)s:%(lineno)s] %(message)s')
+logger = logging.getLogger(__name__)
+
+def print_rank(message):
+    """If distributed is initialized, print the rank."""
+    if torch.distributed.is_initialized():
+        logger.info(f'rank{torch.distributed.get_rank()}: ' + message)
+    else:
+        logger.info(message)
+
+def print_master(message):
+    """If distributed is initialized print only on rank 0."""
+    if torch.distributed.is_initialized():
+        if torch.distributed.get_rank() == 0:
+            logger.info(message)
+    else:
+        logger.info(message)
+
+def batch_to_device(batch, device):
+    _batch = {}
+    for key, value in batch.items():
+        if isinstance(value, torch.Tensor):
+            _batch[key] = value.to(device)
+        else:
+            _batch[key] = value
+    return _batch

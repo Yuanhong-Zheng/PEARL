@@ -1,0 +1,25 @@
+[project]
+name = "qwen3-vl-embedding"
+version = "0.1.0"
+description = "Official Implementation for Qwen3-VL-Embedding and Qwen3-VL-Reranker"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "accelerate>=1.12.0",
+    "datasets>=4.4.2",
+    "decord>=0.6.0",
+    "ipykernel>=7.1.0",
+    "matplotlib>=3.10.8",
+    "ninja>=1.13.0",
+    "opencv-python-headless>=4.12.0.88",
+    "qwen-vl-utils>=0.0.14",
+    "scipy>=1.16.3",
+    "setuptools>=80.9.0",
+    "torch==2.8.*",
+    "torchvision>=0.23.0",
+    "transformers>=4.57.3",
+]
+
+[[tool.uv.index]]
+url = "http://mirrors.aliyun.com/pypi/simple"
+name = "aliyun"

@@ -1,0 +1,15 @@
+/.cache/
+/output_results/
+/scripts/tmp/
+/server/logs/
+/tmp/
+__pycache__/
+*.pyc
+*.egg-info/
+**/.git_bak_nested_repo/
+
+/data/*
+!/data/.gitkeep
+
+/models/*
+!/models/.gitkeep
