@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-统计所有 evaluation.json 文件的整体准确率
+统计所有 evaluation.json 文件的平均准确率
 支持通过 JSON 文件指定需要忽略的问题
 """
 
@@ -81,7 +81,7 @@ def should_ignore_question(video_name, qa_id, ignore_dict):
 
 def main():
     # 解析命令行参数
-    parser = argparse.ArgumentParser(description="统计所有 evaluation.json 文件的整体准确率")
+    parser = argparse.ArgumentParser(description="统计所有 evaluation.json 文件的平均准确率")
     parser.add_argument(
         "result_dir",
         nargs="?",
@@ -247,10 +247,9 @@ def main():
             traceback.print_exc()
             continue
 
-    # 计算整体准确率
-    overall_accuracy = correct_count / total_count if total_count > 0 else 0
     current_time_accuracy = current_time_correct / current_time_count if current_time_count > 0 else 0
     past_time_accuracy = past_time_correct / past_time_count if past_time_count > 0 else 0
+    avg_accuracy = (current_time_accuracy + past_time_accuracy) / 2
 
     # 打印整体统计结果
     print("=" * 80)
@@ -263,10 +262,8 @@ def main():
         print(f"  Current-time qa 忽略: {ignored_by_type.get('current-time qa', 0)}")
         print(f"  Past-time qa 忽略: {ignored_by_type.get('past-time qa', 0)}")
 
-    print("\n总体准确率:")
-    print(f"  正确数量: {correct_count}")
-    print(f"  题目总数: {total_count}")
-    print(f"  准确率: {overall_accuracy:.2%} ({correct_count}/{total_count})")
+    print("\n平均准确率:")
+    print(f"  准确率: {avg_accuracy:.2%}")
 
     print("\nCurrent-time QA 准确率:")
     print(f"  正确数量: {current_time_correct}")
@@ -290,8 +287,8 @@ def main():
             "past_time_ignored": ignored_by_type.get("past-time qa", 0),
             "ignore_file_used": args.ignore if args.ignore else None,
         },
-        "overall": {
-            "accuracy": overall_accuracy,
+        "avg": {
+            "accuracy": avg_accuracy,
             "correct_count": correct_count,
             "total_count": total_count,
         },

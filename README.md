@@ -128,7 +128,7 @@ python eval.py <output_dir>
 
 This command reads all `*_evaluation.json` files in the result directory and reports:
 
-- overall accuracy
+- avg accuracy
 - current-time QA accuracy
 - past-time QA accuracy
 
