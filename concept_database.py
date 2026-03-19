@@ -4,6 +4,7 @@ import re
 from pathlib import Path
 from typing import Optional, List, Dict
 import subprocess
+from utils import extract_video_frame
 
 
 class ConceptDatabase:
@@ -69,38 +70,12 @@ class ConceptDatabase:
         Returns:
             bool: 提取成功返回True，否则返回False
         """
-        try:
-            # 使用 ffmpeg 提取帧
-            cmd = [
-                'ffmpeg',
-                '-i', video_path,
-                '-ss', timestamp,
-                '-vframes', '1',  # 只提取一帧
-                '-q:v', '2',  # 高质量
-                '-y',  # 覆盖已存在的文件
-                output_path
-            ]
-            
-            result = subprocess.run(
-                cmd,
-                check=True,
-                capture_output=True
-            )
-            
-            if os.path.exists(output_path):
-                print(f"✓ 成功提取帧: {output_path}")
-                return True
-            else:
-                print(f"✗ 提取帧失败: 输出文件不存在")
-                return False
-                
-        except subprocess.CalledProcessError as e:
-            print(f"✗ ffmpeg 提取帧失败: {e}")
-            print(f"stderr: {e.stderr.decode()}")
-            return False
-        except Exception as e:
-            print(f"✗ 提取帧异常: {e}")
-            return False
+        return extract_video_frame(
+            source_video=video_path,
+            timestamp=timestamp,
+            output_path=output_path,
+            verbose=True
+        )
 
     def _extract_clip(self, video_path: str, start_time: str, end_time: str, output_path: str) -> bool:
         """

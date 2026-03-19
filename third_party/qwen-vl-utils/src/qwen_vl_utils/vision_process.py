@@ -206,7 +206,6 @@ def _read_video_torchvision(
         if "file://" in video_path:
             video_path = video_path[7:]
     st = time.time()
-    import ipdb;ipdb.set_trace()
     video, audio, info = io.read_video(
         video_path,
         start_pts=ele.get("video_start", 0.0),

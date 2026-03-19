@@ -5,7 +5,7 @@
 import os
 import re
 import subprocess
-from typing import Dict, List, Sequence
+from typing import Dict, List, Sequence, Union
 
 
 def time_to_seconds(time_str: str) -> float:
@@ -180,6 +180,60 @@ def extract_video_clip(
     except Exception as e:
         if verbose:
             print(f"✗ 提取视频片段异常: {e}")
+        return False
+
+
+def extract_video_frame(
+    source_video: str,
+    timestamp: Union[str, float],
+    output_path: str,
+    verbose: bool = False
+) -> bool:
+    """
+    使用 ffmpeg 从源视频中提取指定时间点的一帧图像。
+
+    Args:
+        source_video: 源视频路径
+        timestamp: 时间点（秒或时间字符串）
+        output_path: 输出图像路径
+        verbose: 是否显示详细输出
+
+    Returns:
+        是否成功
+    """
+    try:
+        cmd = [
+            "ffmpeg",
+            "-i", source_video,
+            "-ss", str(timestamp),
+            "-vframes", "1",
+            "-q:v", "2",
+            "-y",
+            output_path,
+        ]
+
+        subprocess.run(
+            cmd,
+            check=True,
+            capture_output=True,
+        )
+
+        if os.path.exists(output_path):
+            if verbose:
+                print(f"✓ 成功提取帧: {output_path}")
+            return True
+
+        if verbose:
+            print("✗ 提取帧失败: 输出文件不存在")
+        return False
+    except subprocess.CalledProcessError as e:
+        if verbose:
+            print(f"✗ ffmpeg 提取帧失败: {e}")
+            print(f"stderr: {e.stderr.decode()}")
+        return False
+    except Exception as e:
+        if verbose:
+            print(f"✗ 提取帧异常: {e}")
         return False
 
 
@@ -591,4 +645,3 @@ if __name__ == "__main__":
     print(f"  提取后: '{extract_question_without_options(test_q1)}'")
     print(f"  原问题2: '{test_q2}'")
     print(f"  提取后: '{extract_question_without_options(test_q2)}'")
-

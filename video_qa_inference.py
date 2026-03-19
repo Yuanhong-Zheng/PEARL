@@ -802,30 +802,16 @@ Requirements:
             print(f"  当前时间 {time_seconds:.2f}s 所在片段: Clip ID {current_clip_info['clip_id']}")
             print(f"  片段时间范围: {clip_start_time:.2f}s - {clip_end_time:.2f}s")
         
-        # 计算片段时长，如果过短则延长
-        clip_duration = time_seconds - clip_start_time
-        adjusted_end_time = time_seconds
-        
-        # if clip_duration < 0.2:
-        #     print(f"  ⚠ 片段时长过短 ({clip_duration:.2f}s < 0.2s)，将结束时间延长 0.5s")
-        #     adjusted_end_time = time_seconds + 0.5
-        #     # 确保不超过片段的实际结束时间
-        #     if adjusted_end_time > clip_end_time:
-        #         adjusted_end_time = clip_end_time
-        #         print(f"    调整后的结束时间超过片段范围，限制为片段结束时间: {adjusted_end_time:.2f}s")
-        #     else:
-        #         print(f"    调整后的结束时间: {adjusted_end_time:.2f}s")
-        
-        # 提取从片段开始到调整后时间的视频
+        # 提取从片段开始到当前时间的视频
         source_video = self.clip_memory.source_video
-        current_clip_filename = f"qa_{qa_id}_current_{clip_id_str}_{clip_start_time:.2f}_{adjusted_end_time:.2f}.mp4"
+        current_clip_filename = f"qa_{qa_id}_current_{clip_id_str}_{clip_start_time:.2f}_{time_seconds:.2f}.mp4"
         current_clip_path = str((self.output_dir / current_clip_filename).resolve())
         
-        print(f"  提取视频: {clip_start_time:.2f}s -> {adjusted_end_time:.2f}s (时长: {adjusted_end_time - clip_start_time:.2f}s)")
+        print(f"  提取视频: {clip_start_time:.2f}s -> {time_seconds:.2f}s (时长: {time_seconds - clip_start_time:.2f}s)")
         success = extract_video_clip(
             source_video=source_video,
             start_time=clip_start_time,
-            end_time=adjusted_end_time,
+            end_time=time_seconds,
             output_path=current_clip_path,
             verbose=True
         )
@@ -923,8 +909,6 @@ Requirements:
         print(f"  ✓ Messages 构建完成，共 {len(messages[0]['content'])} 个元素")
         if current_preceding_clips:
             print(f"  包含 {len(current_preceding_clips)} 个前置 clip")
-        # if qa_type=="past-time qa":
-        #     import ipdb;ipdb.set_trace()
         # 6. 调用模型（支持轮换评估）
         rotation_enabled_for_qa = (
             self.enable_rotation
@@ -1259,4 +1243,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
