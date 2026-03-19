@@ -3,7 +3,7 @@
 # 项目根目录（PEARL）
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-OUTPUT_DIR="${1:-${PROJECT_ROOT}/data/frame-level/output_clips}"
+OUTPUT_DIR="${1:-${PROJECT_ROOT}/data/frame-level/output_clips_test}"
 
 # 设置视频文件夹和 Python 脚本路径（相对项目根目录）
 VIDEO_DIR="${PROJECT_ROOT}/data/frame-level/videos"

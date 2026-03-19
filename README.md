@@ -45,7 +45,7 @@ After downloading, place the archive under the project root and extract it:
 tar -xzf frame-level.tar.gz -C data
 ```
 
-After extraction, the dataset should be available under [`data/frame-level/`](/mdr5/user/quantaalpha/jiangtianyi/PEARL/data/frame-level).
+After extraction, the dataset should be available under `data/frame-level/`.
 
 The extracted directory structure should include:
 
@@ -59,7 +59,7 @@ data/
 
 ## Models
 
-Please download the following models and place them under [`models/`](/mdr5/user/quantaalpha/jiangtianyi/PEARL/models):
+Please download the following models and place them under `models/`:
 
 - `Qwen3-VL-8B-Instruct`
 - `Qwen3-VL-Embedding-2B`
@@ -82,12 +82,12 @@ Run the scene splitting script first:
 bash scripts/split_scene.sh
 ```
 
-This script scans [`data/frame-level/`](/mdr5/user/quantaalpha/jiangtianyi/PEARL/data/frame-level) for `.mp4` files and invokes [`video_scene_splitter.py`](/mdr5/user/quantaalpha/jiangtianyi/PEARL/video_scene_splitter.py) to generate scene clips and clip metadata for each video.
+This script scans `data/frame-level/` for `.mp4` files and invokes `video_scene_splitter.py` to generate scene clips and clip metadata for each video.
 
 For evaluation, the inference script expects:
 
-- annotations under [`data/frame-level/annotations/`](/mdr5/user/quantaalpha/jiangtianyi/PEARL/data/frame-level/annotations/)
-- scene clips under [`data/frame-level/output_clips/`](/mdr5/user/quantaalpha/jiangtianyi/PEARL/data/frame-level/output_clips)
+- annotations under `data/frame-level/annotations/`
+- scene clips under `data/frame-level/output_clips/`
 
 ### 2. Start The Model Servers
 
@@ -101,10 +101,10 @@ Replace `8` with the number of GPUs you want to use. The server launcher starts 
 
 By default, the launcher uses:
 
-- `models/Qwen3-VL-8B-Instruct` for [`server/qwenvl_flask_server.py`](/mdr5/user/quantaalpha/jiangtianyi/PEARL/server/qwenvl_flask_server.py)
-- `models/llava-onevision-qwen2-7b-ov-hf` for [`server/llava_ov_flask_server.py`](/mdr5/user/quantaalpha/jiangtianyi/PEARL/server/llava_ov_flask_server.py)
+- `models/Qwen3-VL-8B-Instruct` for `server/qwenvl_flask_server.py`
+- `models/llava-onevision-qwen2-7b-ov-hf` for `server/llava_ov_flask_server.py`
 
-Server logs are written to [`server/logs/`](/mdr5/user/quantaalpha/jiangtianyi/PEARL/server/logs).
+Server logs are written to `server/logs/`.
 
 ### 3. Run Inference
 
@@ -116,10 +116,10 @@ bash scripts/eval_qwen.sh 8
 
 This script:
 
-- reads annotation files from [`data/frame-level/annotations_filtered/`](/mdr5/user/quantaalpha/jiangtianyi/PEARL/data/frame-level/annotations_filtered)
-- reads scene clips from [`data/frame-level/output_clips/`](/mdr5/user/quantaalpha/jiangtianyi/PEARL/data/frame-level/output_clips)
+- reads annotation files from `data/frame-level/annotations_filtered/`
+- reads scene clips from `data/frame-level/output_clips/`
 - distributes the annotation files across GPUs
-- writes per-file prediction outputs and evaluation files to [`output_results/test/qwen3vl_k4_n1_pre0_fps1/`](/mdr5/user/quantaalpha/jiangtianyi/PEARL/output_results/test/qwen3vl_k4_n1_pre0_fps1)
+- writes per-file prediction outputs and evaluation files to `output_results/test/qwen3vl_k4_n1_pre0_fps1/`
 
 For each annotation file, the script produces:
 
