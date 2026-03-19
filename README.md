@@ -123,7 +123,7 @@ For each annotation file, the script produces:
 Once inference is finished, compute the overall metrics with:
 
 ```bash
-python eval.py output_results/test/qwen3vl_k4_n1_pre0_fps1
+python eval.py <output_dir>
 ```
 
 This command reads all `*_evaluation.json` files in the result directory and reports:
