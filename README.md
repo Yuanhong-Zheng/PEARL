@@ -2,8 +2,6 @@
   PEARL: Personalized Streaming Video Understanding Model
 </h1>
 
----
-
 ## 🛠️ Install
 
 ### 1. Create a Python environment
