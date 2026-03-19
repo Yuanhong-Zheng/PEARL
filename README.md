@@ -13,29 +13,16 @@ conda create -n pearl python=3.11 -y
 conda activate pearl
 ```
 
-### 2. Install PyTorch
-
-Install a CUDA-enabled PyTorch build that matches your machine. For example:
+### 2. Install dependencies
 
 ```bash
-pip install torch torchvision torchaudio
+pip install -r requirements.txt
 ```
 
-If you need a specific CUDA version, use the official PyTorch install command for your platform.
-
-### 3. Install core runtime dependencies
+### 3. Install ffmpeg
 
 ```bash
-pip install \
-  openai \
-  flask \
-  requests \
-  numpy \
-  pillow \
-  transformers \
-  vllm \
-  av \
-  scenedetect
+conda install -c conda-forge ffmpeg
 ```
 
 ### 4. Install local third-party packages

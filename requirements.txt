@@ -1,0 +1,9 @@
+openai
+flask
+requests
+numpy
+pillow
+transformers
+vllm
+av
+scenedetect
