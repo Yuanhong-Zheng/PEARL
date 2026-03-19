@@ -52,7 +52,7 @@ The extracted directory structure should include:
 ```text
 data/
   frame-level/
-    annotations_filtered/
+    annotations/
     output_clips/
     videos/
 ```
