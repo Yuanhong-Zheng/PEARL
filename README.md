@@ -31,3 +31,18 @@ Install the local third-party packages without pulling extra dependencies:
 pip install -e third_party/qwen-vl-utils --no-deps
 pip install -e third_party/Qwen3-VL-Embedding --no-deps
 ```
+
+## Dataset
+
+We provide the `frame-level` dataset as a single `.tar.gz` archive. Download the archive from one of the following mirrors:
+
+- Hugging Face:
+- ModelScope:
+
+After downloading, place the archive under the project root and extract it:
+
+```bash
+tar -xzf frame-level.tar.gz -C data
+```
+
+After extraction, the dataset should be available under [`data/frame-level/`](/mdr5/user/quantaalpha/jiangtianyi/PEARL/data/frame-level).
