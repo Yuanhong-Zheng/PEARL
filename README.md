@@ -145,5 +145,5 @@ It also saves the aggregated statistics to `overall_statistics.json` in the same
 
 ## TODO
 
-1. Video-level Data and evaluation
-2. live streaming demo
+1. Video-Level Data and Evaluation
+2. Live Streaming Demo
