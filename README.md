@@ -134,5 +134,5 @@ This command reads all `*_evaluation.json` files in the result directory and rep
 
 ## TODO
 
-1. Video-Level Data and Evaluation
-2. Live Streaming Demo
+- [ ] Video-Level Data and Evaluation
+- [ ] Live Streaming Demo
