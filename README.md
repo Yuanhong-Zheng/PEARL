@@ -47,6 +47,16 @@ tar -xzf frame-level.tar.gz -C data
 
 After extraction, the dataset should be available under [`data/frame-level/`](/mdr5/user/quantaalpha/jiangtianyi/PEARL/data/frame-level).
 
+The extracted directory structure should look like:
+
+```text
+data/
+  frame-level/
+    annotations_filtered/
+    output_clips/
+    videos/
+```
+
 ## Models
 
 Please download the following models and place them under [`models/`](/mdr5/user/quantaalpha/jiangtianyi/PEARL/models):
