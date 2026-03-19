@@ -13,12 +13,12 @@ from concept_database import ConceptDatabase
 from clip_memory import ClipMemory
 from utils import (
     time_to_seconds, extract_concepts, extract_video_clip, 
-    remove_concept_markers, extract_question_without_options,
+    extract_question_without_options,
     evaluate_qa_results, print_evaluation_report,
     build_question_with_options, build_rotated_qa_item,
     has_complete_option_fields, extract_answer_from_response
 )
-from generate_concept_retrieval_descriptions import generate_distinctive_description
+from concept_desc import generate_distinctive_description
 
 
 def _resolve_path(path_str: str, base_dir: Path) -> Path:
@@ -43,17 +43,13 @@ class VideoQAInference:
         clips_info_path: str,
         cache_dir: str = "./.cache",
         api_base_url: str = "http://127.0.0.1:22003/v1",
-        model_path: str = "/mnt/shared-storage-user/mineru2-shared/zqt/zqt2/models/OpenGVLab/InternVL3_5-8B",
+        model_path: str = "models/Qwen3-VL-8B-Instruct",
         use_video_embedding: bool = False,
         embedding_api_url: str = "http://localhost:5000",
         batch_size: int = 10,
         output_dir: str = "./.cache/qa_output",
         clear_concept_db: bool = True,
         num_neighbor: int = 1,
-        num_preceding_clips: int = 3,
-        only_past_time_qa: bool = False,
-        retrieve_for_current_time_qa: bool = True,
-        replace_concept_in_query: bool = False,
         enable_rotation: bool = True
     ):
         """
@@ -71,10 +67,6 @@ class VideoQAInference:
             output_dir: 输出目录（用于保存临时视频片段）
             clear_concept_db: 是否在添加概念前清空数据库（默认：True）
             num_neighbor: 邻居数量（0=不添加邻居，1=左右各1个，2=左右各2个，默认：1）
-            num_preceding_clips: 当前 clip 的前置 clip 数量（仅用于 past-time qa，默认：3）
-            only_past_time_qa: 是否只评估 past-time qa（默认：False，会同时评估 past-time qa 和 current-time qa）
-            retrieve_for_current_time_qa: current-time qa 是否检索历史片段（默认：True，False 时与 video_qa_inference_n.py 逻辑一致）
-            replace_concept_in_query: 是否在检索时替换 query 中的概念名称为视觉描述（默认：False）
             enable_rotation: 是否启用选项轮换评估（默认：True）
         """
         print("=" * 80)
@@ -85,29 +77,15 @@ class VideoQAInference:
         self.annotation_path = str(Path(annotation_path).resolve())
         self.clips_info_path = str(Path(clips_info_path).resolve())
         self.annotation_base_dir = Path(self.annotation_path).parent
+        project_root = Path(__file__).resolve().parent
+        model_path = str(_resolve_path(model_path, project_root))
         
         # 保存邻居数量参数
         self.num_neighbor = num_neighbor
         print(f"邻居数量设置: {num_neighbor} (每个检索clip左右各添加 {num_neighbor} 个邻居)")
-        
-        # 保存前置 clip 数量参数
-        self.num_preceding_clips = num_preceding_clips
-        print(f"前置 clip 数量设置: {num_preceding_clips} (当前clip的前 {num_preceding_clips} 个clip)")
-        
-        # 保存只评估 past-time qa 的参数
-        self.only_past_time_qa = only_past_time_qa
-        qa_mode = "只评估 past-time qa" if only_past_time_qa else "评估 past-time qa 和 current-time qa"
-        print(f"评估模式: {qa_mode}")
-        
-        # 保存 current-time qa 是否检索历史片段的参数
-        self.retrieve_for_current_time_qa = retrieve_for_current_time_qa
-        retrieve_mode = "检索历史片段" if retrieve_for_current_time_qa else "不检索历史片段"
-        print(f"current-time qa 模式: {retrieve_mode}")
-        
-        # 保存是否替换 query 中概念名称的参数
-        self.replace_concept_in_query = replace_concept_in_query
-        concept_replace_mode = "替换为视觉描述" if replace_concept_in_query else "保留原始概念名称"
-        print(f"检索 query 概念替换模式: {concept_replace_mode}")
+        print("评估模式: 评估 past-time qa 和 current-time qa")
+
+        print("检索 query 概念替换模式: 替换为视觉描述")
         
         # 保存是否启用轮换评估参数
         self.enable_rotation = enable_rotation
@@ -156,44 +134,41 @@ class VideoQAInference:
         )
         print(f"✓ 概念数据库初始化完成，共 {len(self.concept_db.data['concepts'])} 个概念")
         
-        # 如果启用了概念替换，为每个概念生成 retrieval_description
-        if self.replace_concept_in_query:
-            print(f"\n  [概念替换] 正在为每个概念生成/更新 retrieval_description...")
-            # 先初始化临时 client（后面会正式初始化）
-            temp_client = OpenAI(api_key="EMPTY", base_url=api_base_url, timeout=3600)
+        print(f"\n  [概念替换] 正在为每个概念生成/更新 retrieval_description...")
+        # 先初始化临时 client（后面会正式初始化）
+        temp_client = OpenAI(api_key="EMPTY", base_url=api_base_url, timeout=3600)
+        
+        for concept in self.concept_db.data['concepts']:
+            concept_name = concept.get('concept_name', 'Unknown')
+            frame_path = concept.get('frame_path', '')
+            original_description = concept.get('description', '')
             
-            for concept in self.concept_db.data['concepts']:
-                concept_name = concept.get('concept_name', 'Unknown')
-                frame_path = concept.get('frame_path', '')
-                original_description = concept.get('description', '')
-                
-                if not frame_path or not Path(frame_path).exists():
-                    print(f"    ⚠ 概念 '{concept_name}' 的图像不存在，跳过")
-                    continue
-                
-                print(f"    为概念 '{concept_name}' 生成 retrieval_description...")
-                retrieval_desc = generate_distinctive_description(
-                    client=temp_client,
-                    model_path=model_path,
-                    image_path=frame_path,
-                    concept_name=concept_name,
-                    original_description=original_description
-                )
-                concept['retrieval_description'] = retrieval_desc
-                print(f"    ✓ {concept_name}: {retrieval_desc}")
+            if not frame_path or not Path(frame_path).exists():
+                print(f"    ⚠ 概念 '{concept_name}' 的图像不存在，跳过")
+                continue
+            
+            print(f"    为概念 '{concept_name}' 生成 retrieval_description...")
+            retrieval_desc = generate_distinctive_description(
+                client=temp_client,
+                model_path=model_path,
+                image_path=frame_path,
+                concept_name=concept_name,
+                original_description=original_description
+            )
+            concept['retrieval_description'] = retrieval_desc
+            print(f"    ✓ {concept_name}: {retrieval_desc}")
 
-            
-            # 保存更新后的概念数据库
-            self.concept_db._save_db()
-            
-            # 构建 concept_name -> retrieval_description 的映射
-            self.concept_retrieval_map = {}
-            for concept in self.concept_db.data['concepts']:
-                name = concept.get('concept_name', '')
-                desc = concept.get('retrieval_description', '')
-                if name and desc:
-                    self.concept_retrieval_map[name] = desc
-            print(f"  ✓ 概念替换映射构建完成，共 {len(self.concept_retrieval_map)} 个映射")
+        # 保存更新后的概念数据库
+        self.concept_db._save_db()
+        
+        # 构建 concept_name -> retrieval_description 的映射
+        self.concept_retrieval_map = {}
+        for concept in self.concept_db.data['concepts']:
+            name = concept.get('concept_name', '')
+            desc = concept.get('retrieval_description', '')
+            if name and desc:
+                self.concept_retrieval_map[name] = desc
+        print(f"  ✓ 概念替换映射构建完成，共 {len(self.concept_retrieval_map)} 个映射")
         
         # 初始化 ClipMemory
         print("\n[2/3] 初始化 Clip 记忆系统...")
@@ -222,7 +197,7 @@ class VideoQAInference:
             timeout=3600
         )
         self.model_path = model_path
-        print(f"✓ 模型 API 初始化完成")
+        print(f"✓ 模型 API 初始化完成: {self.model_path}")
         
         print("\n" + "=" * 80)
         print("初始化完成！")
@@ -372,8 +347,8 @@ Requirements:
         query = extract_question_without_options(question).strip()
         print(f"  原始 query: {query}")
         
-        # 如果启用了概念替换，用大模型将 query 中的概念名称替换为视觉描述
-        if self.replace_concept_in_query and hasattr(self, 'concept_retrieval_map') and self.concept_retrieval_map:
+        # 用视觉描述重写 query 中的概念名称，增强检索信号
+        if self.concept_retrieval_map:
             _rewrite_t0 = _time.perf_counter()
             query = self.replace_concepts_with_descriptions(query)
             query_rewrite_time_ms = round((_time.perf_counter() - _rewrite_t0) * 1000)
@@ -545,8 +520,7 @@ Requirements:
         question: str,
         concepts_info: List[Dict],
         clips_info: List[Dict],
-        current_clip_path: Optional[str] = None,
-        current_preceding_clips: Optional[List[Dict]] = None
+        current_clip_path: Optional[str] = None
     ) -> List[Dict]:
         """
         构建发送给模型的 messages
@@ -556,7 +530,6 @@ Requirements:
             concepts_info: 概念信息列表
             clips_info: 历史相关片段信息列表
             current_clip_path: 当前视频片段路径（从片段开始到问题时间点）
-            current_preceding_clips: 当前 clip 的前 n 个 clip（仅用于 past-time qa）
             
         Returns:
             messages 列表
@@ -607,26 +580,6 @@ Requirements:
                         "url": _to_file_url(clip["clip_path"])
                     }
                 })
-                # if clip['description'] is not None and clip['description'].strip() != "":
-                #     # 添加片段描述
-                #     content.append({
-                #         "type": "text",
-                #         "text": f"{clip['description']}"
-                #     })
-        
-        # # 添加当前 clip 的前 n 个 clip（仅用于 past-time qa）
-        # if current_preceding_clips:
-        #     content.append({
-        #         "type": "text",
-        #         "text": "Here are the clips immediately before the current clip:"
-        #     })
-        #     for clip in current_preceding_clips:
-        #         content.append({
-        #             "type": "video_url",
-        #             "video_url": {
-        #                 "url": f"file://{clip['clip_path']}"
-        #             }
-        #         })
         
         # 添加当前视频片段（从片段开始到问题时间点）
         if current_clip_path:
@@ -733,51 +686,46 @@ Requirements:
                 print(f"    ✓ 找到: {concept_info['frame_path']}")
                 concepts_info.append(concept_info)
         assert len(concepts)!=0, "问题中未提取到任何概念，请检查问题格式是否正确，概念应使用 {} 包围"
-        # 3. 从 Clip 记忆系统检索相关片段（根据 qa_type 和 retrieve_for_current_time_qa 决定是否检索）
+        # 3. 从 Clip 记忆系统检索相关片段
         clips_info = []
         # 支持两种格式：time（单帧格式）或 end_time（片段格式，回退到 end_time）
         question_time = qa_item.get('time') or qa_item.get('end_time')
         time_seconds = time_to_seconds(question_time)
         
-        # 决定是否需要检索历史片段
-        should_retrieve = (qa_type == 'past-time qa') or (qa_type == 'current-time qa' and self.retrieve_for_current_time_qa)
         query_rewrite_time_ms = None
         top_k_retrieval_time_ms = None
+
+        print(f"\n[步骤 3] 检索相关视频片段 (Top {top_k_clips})...")
+        retrieved_clips, retrieval_timing_stats = self.retrieve_relevant_clips(
+            question,
+            max_time=question_time,
+            top_k=top_k_clips,
+            return_timing=True
+        )
+        query_rewrite_time_ms = retrieval_timing_stats.get("query_rewrite_time_ms")
+        top_k_retrieval_time_ms = retrieval_timing_stats.get("top_k_retrieval_time_ms")
         
-        if should_retrieve:
-            print(f"\n[步骤 3] 检索相关视频片段 (Top {top_k_clips})...")
-            retrieved_clips, retrieval_timing_stats = self.retrieve_relevant_clips(
-                question,
-                max_time=question_time,
-                top_k=top_k_clips,
-                return_timing=True
-            )
-            query_rewrite_time_ms = retrieval_timing_stats.get("query_rewrite_time_ms")
-            top_k_retrieval_time_ms = retrieval_timing_stats.get("top_k_retrieval_time_ms")
-            
-            print(f"\n  检索到的top {len(retrieved_clips)} 个clip:")
-            for i, clip in enumerate(retrieved_clips, 1):
-                print(f"  #{i} Clip ID: {clip['clip_id']}, 相似度: {clip['similarity_score']:.4f}")
-                print(f"      时间范围: {clip['start_time']:.2f}s - {clip['end_time']:.2f}s")
-                print(f"      描述: {clip['description']}")
-            
-            # 获取当前时间点所在的片段，用于确定current clip的开始时间
-            current_clip_info_temp = self.get_clip_at_time(time_seconds)
-            if current_clip_info_temp is not None:
-                current_clip_start_time = current_clip_info_temp['start_time']
-            else:
-                # 如果未找到对应片段，使用前1秒
-                current_clip_start_time = max(0, time_seconds - 1)
-            
-            # 扩展clip列表，包括邻居
-            clips_info = self.expand_clips_with_neighbors(retrieved_clips, current_clip_start_time)
-            
-            print(f"\n  扩展后的clip列表:")
-            for i, clip in enumerate(clips_info, 1):
-                print(f"  #{i} Clip ID: {clip['clip_id']}")
-                print(f"      时间范围: {clip['start_time']:.2f}s - {clip['end_time']:.2f}s")
+        print(f"\n  检索到的top {len(retrieved_clips)} 个clip:")
+        for i, clip in enumerate(retrieved_clips, 1):
+            print(f"  #{i} Clip ID: {clip['clip_id']}, 相似度: {clip['similarity_score']:.4f}")
+            print(f"      时间范围: {clip['start_time']:.2f}s - {clip['end_time']:.2f}s")
+            print(f"      描述: {clip['description']}")
+        
+        # 获取当前时间点所在的片段，用于确定current clip的开始时间
+        current_clip_info_temp = self.get_clip_at_time(time_seconds)
+        if current_clip_info_temp is not None:
+            current_clip_start_time = current_clip_info_temp['start_time']
         else:
-            print(f"\n[步骤 3] 跳过历史片段检索（current-time qa 且 retrieve_for_current_time_qa=False）")
+            # 如果未找到对应片段，使用前1秒
+            current_clip_start_time = max(0, time_seconds - 1)
+        
+        # 扩展clip列表，包括邻居
+        clips_info = self.expand_clips_with_neighbors(retrieved_clips, current_clip_start_time)
+        
+        print(f"\n  扩展后的clip列表:")
+        for i, clip in enumerate(clips_info, 1):
+            print(f"  #{i} Clip ID: {clip['clip_id']}")
+            print(f"      时间范围: {clip['start_time']:.2f}s - {clip['end_time']:.2f}s")
         
         # 4. 提取当前视频片段（从片段开始到问题时间点）
         print("\n[步骤 4] 提取当前视频片段...")
@@ -790,19 +738,15 @@ Requirements:
         if current_clip_info is None:
             print(f"  ⚠ 在时间点 {question_time} 未找到对应的视频片段，使用前1秒作为当前片段")
             clip_start_time = max(0, time_seconds - 1)  # 确保不为负数
-            clip_end_time = time_seconds
             clip_id_str = "fallback"
-            is_fallback_clip = True
-            print(f"  使用备选片段时间范围: {clip_start_time:.2f}s - {clip_end_time:.2f}s")
+            print(f"  使用备选片段时间范围: {clip_start_time:.2f}s - {time_seconds:.2f}s")
         else:
             clip_start_time = current_clip_info['start_time']
-            clip_end_time = current_clip_info['end_time']
             clip_id_str = str(current_clip_info['clip_id'])
-            is_fallback_clip = False
             print(f"  当前时间 {time_seconds:.2f}s 所在片段: Clip ID {current_clip_info['clip_id']}")
-            print(f"  片段时间范围: {clip_start_time:.2f}s - {clip_end_time:.2f}s")
-        
-        # 提取从片段开始到当前时间的视频
+            print(f"  片段时间范围: {clip_start_time:.2f}s - {current_clip_info['end_time']:.2f}s")
+
+        # 提取从片段开始到问题时间点的视频
         source_video = self.clip_memory.source_video
         current_clip_filename = f"qa_{qa_id}_current_{clip_id_str}_{clip_start_time:.2f}_{time_seconds:.2f}.mp4"
         current_clip_path = str((self.output_dir / current_clip_filename).resolve())
@@ -820,95 +764,12 @@ Requirements:
         #     print(f"  ⚠ 警告: 提取当前视频片段失败，将不包含当前片段")
         #     current_clip_path = None
 
-        # 4.5. 添加当前 clip 的前 n 个 clip（对 past-time qa 和 current-time qa 都适用）
-        current_preceding_clips = []
-        if self.num_preceding_clips > 0:
-            
-            print(f"\n[步骤 4.5] 添加当前 clip 的前 {self.num_preceding_clips} 个 clip...")
-            n_preceding = self.num_preceding_clips
-            
-            # 收集已经存在的 clip id（来自检索的历史片段）
-            existing_clip_ids = set(clip['clip_id'] for clip in clips_info)
-            print(f"  已存在的历史 clip ID: {existing_clip_ids}")
-            
-            # 获取当前 clip 的索引
-            current_clip_index = None
-            if current_clip_info is not None:
-                for i, clip in enumerate(self.clip_memory.clips_data):
-                    if clip['clip_id'] == current_clip_info['clip_id']:
-                        current_clip_index = i
-                        break
-            
-            added_clips = []
-            
-            if current_clip_index is not None:
-                # 情况1: 找到了当前 clip，从其索引往前查找
-                print(f"  当前 clip 索引: {current_clip_index}")
-                
-                # 获取前 n 个 clip，跳过已存在的
-                offset = 1
-                while len(added_clips) < n_preceding and current_clip_index - offset >= 0:
-                    preceding_clip = self.clip_memory.clips_data[current_clip_index - offset]
-                    
-                    # 如果这个 clip 不在已有的历史片段中，则添加
-                    if preceding_clip['clip_id'] not in existing_clip_ids:
-                        # 直接使用已有的 clip 路径
-                        print(f"  添加前置 clip {len(added_clips)+1}: Clip ID {preceding_clip['clip_id']}")
-                        print(f"    时间范围: {preceding_clip['start_time']:.2f}s - {preceding_clip['end_time']:.2f}s")
-                        print(f"    路径: {preceding_clip['clip_path']}")
-                        
-                        added_clips.append({
-                            'clip_id': preceding_clip['clip_id'],
-                            'clip_path': preceding_clip['clip_path'],
-                            'start_time': preceding_clip['start_time'],
-                            'end_time': preceding_clip['end_time']
-                        })
-                    else:
-                        print(f"  跳过 Clip ID {preceding_clip['clip_id']}（已存在于历史片段中）")
-                    
-                    offset += 1
-            else:
-                # 情况2: 未找到当前 clip（fallback情况），寻找距离问题时间点最近的前 n 个 clips
-                print(f"  未找到当前 clip，寻找问题时间点 {time_seconds:.2f}s 之前距离最近的 {n_preceding} 个 clips...")
-                
-                # 找到所有 end_time <= time_seconds 的 clips
-                candidate_clips = []
-                for clip in self.clip_memory.clips_data:
-                    if clip['end_time'] <= time_seconds and clip['clip_id'] not in existing_clip_ids:
-                        candidate_clips.append(clip)
-                
-                # 按 end_time 降序排列（最近的在前）
-                candidate_clips.sort(key=lambda x: x['end_time'], reverse=True)
-                # 取前 n 个
-                selected_clips = candidate_clips[:n_preceding]
-                
-                print(f"  找到 {len(candidate_clips)} 个候选 clips，选择最近的 {len(selected_clips)} 个")
-                
-                for clip in selected_clips:
-                    # 直接使用已有的 clip 路径
-                    print(f"  添加前置 clip {len(added_clips)+1}: Clip ID {clip['clip_id']}")
-                    print(f"    时间范围: {clip['start_time']:.2f}s - {clip['end_time']:.2f}s")
-                    print(f"    路径: {clip['clip_path']}")
-                    
-                    added_clips.append({
-                        'clip_id': clip['clip_id'],
-                        'clip_path': clip['clip_path'],
-                        'start_time': clip['start_time'],
-                        'end_time': clip['end_time']
-                    })
-            
-            # 按时间顺序排列（从早到晚）
-            added_clips.sort(key=lambda x: x['start_time'])
-            current_preceding_clips = added_clips
-            
-            print(f"  ✓ 成功添加 {len(current_preceding_clips)} 个前置 clip")
-        
         # 5. 构建 messages
         print("\n[步骤 5] 构建模型输入...")
-        messages = self.build_messages(question, concepts_info, clips_info, current_clip_path, current_preceding_clips)
+        messages = self.build_messages(question, concepts_info, clips_info, current_clip_path)
         print(f"  ✓ Messages 构建完成，共 {len(messages[0]['content'])} 个元素")
-        if current_preceding_clips:
-            print(f"  包含 {len(current_preceding_clips)} 个前置 clip")
+        # if qa_type=="past-time qa":
+        #     import ipdb;ipdb.set_trace()
         # 6. 调用模型（支持轮换评估）
         rotation_enabled_for_qa = (
             self.enable_rotation
@@ -935,7 +796,7 @@ Requirements:
                     rotated_qa, require_complete_options=True
                 )
                 rotated_messages = self.build_messages(
-                    rotated_question, concepts_info, clips_info, current_clip_path, current_preceding_clips
+                    rotated_question, concepts_info, clips_info, current_clip_path
                 )
                 answer, call_time_ms, call_non_inference_time_ms, call_model_total_time_ms = self.call_model(rotated_messages)
                 if call_time_ms is not None:
@@ -998,10 +859,9 @@ Requirements:
             all_correct = None
             rotation_details = []
 
-        # 7. 添加 answer 字段和备选片段标记
+        # 7. 添加 answer 字段
         qa_item_with_answer = qa_item.copy()
         qa_item_with_answer['answer'] = final_answer
-        qa_item_with_answer['is_fallback_clip'] = is_fallback_clip
         qa_item_with_answer['rotation_enabled'] = rotation_enabled_for_qa
         qa_item_with_answer['rotation_all_correct'] = all_correct
         qa_item_with_answer['rotation_details'] = rotation_details
@@ -1049,13 +909,8 @@ Requirements:
             video_path = video_item['video_path']
             timestamps = video_item['timestamps']
             
-            # 根据 only_past_time_qa 参数筛选问题
-            if self.only_past_time_qa:
-                # 只筛选 past-time qa
-                target_qas = [qa for qa in timestamps if qa.get('qa_type') == 'past-time qa']
-            else:
-                # 筛选出 past-time qa 和 current-time qa 类型的问题
-                target_qas = [qa for qa in timestamps if qa.get('qa_type') in ['past-time qa', 'current-time qa']]
+            # 仅处理 past-time qa 和 current-time qa 两类问题
+            target_qas = [qa for qa in timestamps if qa.get('qa_type') in ['past-time qa', 'current-time qa']]
             
             past_time_count = len([qa for qa in target_qas if qa.get('qa_type') == 'past-time qa'])
             current_time_count = len([qa for qa in target_qas if qa.get('qa_type') == 'current-time qa'])
@@ -1134,12 +989,6 @@ def parse_args():
         help="邻居数量（0=不添加邻居，1=左右各1个，2=左右各2个，默认：1）"
     )
     parser.add_argument(
-        "--num_preceding_clips",
-        type=int,
-        default=0,
-        help="当前 clip 的前置 clip 数量（仅用于 past-time qa，默认：3）"
-    )
-    parser.add_argument(
         "--api_base_url",
         type=str,
         default="http://127.0.0.1:22003/v1",
@@ -1150,21 +999,6 @@ def parse_args():
         type=int,
         default=4,
         help="检索最相关的 K 个片段（默认：3）"
-    )
-    parser.add_argument(
-        "--only_past_time_qa",
-        action="store_true",
-        help="是否只评估 past-time qa（默认：False，会同时评估 past-time qa 和 current-time qa）"
-    )
-    parser.add_argument(
-        "--no_retrieve_for_current_time_qa",
-        action="store_true",
-        help="current-time qa 是否不检索历史片段（默认：False，即检索；设置此标志后不检索，与 video_qa_inference_n.py 逻辑一致）"
-    )
-    parser.add_argument(
-        "--replace_concept_in_query",
-        action="store_true",
-        help="检索时是否将 query 中的概念名称替换为视觉描述（默认：False；启用后会为每个概念生成 retrieval_description 并用大模型重写 query）"
     )
     parser.add_argument(
         "--enable_rotation",
@@ -1226,10 +1060,6 @@ def main():
         output_dir=str((project_root / ".cache" / "qa_output" / (f"qa_{output_path.name}" + (f"_gpu{args.gpu_id}" if args.gpu_id else ""))).resolve()),  # 临时视频片段输出目录
         clear_concept_db=False,  # 每次运行时清空并重新构建概念数据库
         num_neighbor=args.num_neighbor,  # 邻居数量
-        num_preceding_clips=args.num_preceding_clips,  # 前置 clip 数量
-        only_past_time_qa=args.only_past_time_qa,  # 是否只评估 past-time qa
-        retrieve_for_current_time_qa=not args.no_retrieve_for_current_time_qa,  # current-time qa 是否检索历史片段
-        replace_concept_in_query=args.replace_concept_in_query,  # 检索时是否替换概念名称
         enable_rotation=args.enable_rotation
     )
 

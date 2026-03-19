@@ -173,7 +173,6 @@ process_gpu() {
             --api_base_url "$api_url" \
             --embedding_api_url "$embedding_url" \
             --gpu_id "$gpu_id" \
-            --replace_concept_in_query  \
             --enable_rotation
             
 
@@ -252,4 +251,3 @@ fi
 echo "========================================"
 echo "输出目录: ${OUTPUT_DIR}"
 echo ""
-

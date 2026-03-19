@@ -17,17 +17,17 @@ NUM_GPUS=${1:-8}
 # 项目根目录（PEARL）
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-ANNOTATION_DIR="${PROJECT_ROOT}/data/frame-level/annotations_short"
+ANNOTATION_DIR="${PROJECT_ROOT}/data/frame-level/annotations_debug"
 CLIPS_BASE_DIR="${PROJECT_ROOT}/data/frame-level/output_clips"
 CACHE_DIR="${PROJECT_ROOT}/.cache"
-OUTPUT_DIR="${PROJECT_ROOT}/output_results/test/qwen3vl_k4_n1_pre0_fps1_short2"
+OUTPUT_DIR="${PROJECT_ROOT}/output_results/test/qwen3vl_k4_n1_pre0_fps1_debug2"
 PYTHON_SCRIPT="${PROJECT_ROOT}/video_qa_inference.py"
 
 VLLM_BASE_PORT=22003
 EMBEDDING_BASE_PORT=5000
 
 # 开关：是否跳过已存在的输出文件 (true/false)
-SKIP_EXISTING=true
+SKIP_EXISTING=false
 # ====================================
 
 echo "========================================"
@@ -173,7 +173,6 @@ process_gpu() {
             --api_base_url "$api_url" \
             --embedding_api_url "$embedding_url" \
             --gpu_id "$gpu_id" \
-            --replace_concept_in_query  \
             --enable_rotation
             
 
@@ -252,4 +251,3 @@ fi
 echo "========================================"
 echo "输出目录: ${OUTPUT_DIR}"
 echo ""
-

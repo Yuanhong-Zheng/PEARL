@@ -149,7 +149,6 @@ for ((i=0; i<TOTAL_FILES; i++)); do
         --api_base_url "${API_URL}" \
         --embedding_api_url "${EMBEDDING_URL}" \
         --gpu_id "${GPU_ID}" \
-        --replace_concept_in_query \
         --enable_rotation; then
         echo "[DEBUG][GPU ${GPU_ID}] ✓ 成功: ${filename}"
         success_count=$((success_count + 1))
