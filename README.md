@@ -34,10 +34,10 @@ pip install -e third_party/Qwen3-VL-Embedding --no-deps
 
 ## Dataset
 
-We provide the `frame-level` dataset as a single `.tar.gz` archive. Download the archive from one of the following mirrors:
+Download the archive from one of the following mirrors:
 
-- Hugging Face:
-- ModelScope:
+- [Hugging Face](#)
+- [ModelScope](https://www.modelscope.cn/datasets/YuanhongZheng/PEARL-Data)
 
 After downloading, place the archive under the project root and extract it:
 
