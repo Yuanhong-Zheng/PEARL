@@ -47,7 +47,7 @@ tar -xzf frame-level.tar.gz -C data
 
 After extraction, the dataset should be available under [`data/frame-level/`](/mdr5/user/quantaalpha/jiangtianyi/PEARL/data/frame-level).
 
-The extracted directory structure should look like:
+The extracted directory structure should include:
 
 ```text
 data/
@@ -64,12 +64,3 @@ Please download the following models and place them under [`models/`](/mdr5/user
 - `Qwen3-VL-8B-Instruct`
 - `Qwen3-VL-Embedding-2B`
 - `llava-onevision-qwen2-7b-ov-hf`
-
-The directory layout should look like:
-
-```text
-models/
-  Qwen3-VL-8B-Instruct/
-  Qwen3-VL-Embedding-2B/
-  llava-onevision-qwen2-7b-ov-hf/
-```
