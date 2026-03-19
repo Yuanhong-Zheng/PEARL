@@ -2,8 +2,6 @@
 
 ## Install
 
-PEARL relies on a local multimodal LLM server, a local embedding server, and several third-party vision libraries. The project currently assumes a Linux environment with CUDA GPUs.
-
 ### 1. Create a Python environment
 
 We recommend Python 3.11:
