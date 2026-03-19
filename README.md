@@ -64,3 +64,80 @@ Please download the following models and place them under [`models/`](/mdr5/user
 - `Qwen3-VL-8B-Instruct`
 - `Qwen3-VL-Embedding-2B`
 - `llava-onevision-qwen2-7b-ov-hf`
+
+## Evaluation
+
+The evaluation pipeline has four stages:
+
+1. Split each source video into scene clips.
+2. Start the VLM server and the embedding server on each GPU.
+3. Run multi-GPU inference over the annotation files.
+4. Aggregate the final evaluation metrics.
+
+### 1. Split Videos Into Scene Clips
+
+Run the scene splitting script first:
+
+```bash
+bash scripts/split_scene.sh
+```
+
+This script scans [`data/video-level/`](/mdr5/user/quantaalpha/jiangtianyi/PEARL/data/video-level) for `.mp4` files and invokes [`video_scene_splitter.py`](/mdr5/user/quantaalpha/jiangtianyi/PEARL/video_scene_splitter.py) to generate scene clips and clip metadata for each video.
+
+For evaluation, the inference script expects:
+
+- annotations under [`data/frame-level/annotations_filtered/`](/mdr5/user/quantaalpha/jiangtianyi/PEARL/data/frame-level/annotations_filtered)
+- scene clips under [`data/frame-level/output_clips/`](/mdr5/user/quantaalpha/jiangtianyi/PEARL/data/frame-level/output_clips)
+
+### 2. Start The Model Servers
+
+Launch the VLM server and the embedding server on all GPUs before inference:
+
+```bash
+bash scripts/start_multi_gpu_servers.sh 8
+```
+
+Replace `8` with the number of GPUs you want to use. The server launcher starts one VLM server and one embedding server per GPU, and the inference script will automatically wait until all `/health` checks succeed before starting.
+
+By default, the launcher uses:
+
+- `models/Qwen3-VL-8B-Instruct` for [`server/qwenvl_flask_server.py`](/mdr5/user/quantaalpha/jiangtianyi/PEARL/server/qwenvl_flask_server.py)
+- `models/llava-onevision-qwen2-7b-ov-hf` for [`server/llava_ov_flask_server.py`](/mdr5/user/quantaalpha/jiangtianyi/PEARL/server/llava_ov_flask_server.py)
+
+Server logs are written to [`server/logs/`](/mdr5/user/quantaalpha/jiangtianyi/PEARL/server/logs).
+
+### 3. Run Inference
+
+After all servers are ready, run:
+
+```bash
+bash scripts/eval_qwen.sh 8
+```
+
+This script:
+
+- reads annotation files from [`data/frame-level/annotations_filtered/`](/mdr5/user/quantaalpha/jiangtianyi/PEARL/data/frame-level/annotations_filtered)
+- reads scene clips from [`data/frame-level/output_clips/`](/mdr5/user/quantaalpha/jiangtianyi/PEARL/data/frame-level/output_clips)
+- distributes the annotation files across GPUs
+- writes per-file prediction outputs and evaluation files to [`output_results/test/qwen3vl_k4_n1_pre0_fps1/`](/mdr5/user/quantaalpha/jiangtianyi/PEARL/output_results/test/qwen3vl_k4_n1_pre0_fps1)
+
+For each annotation file, the script produces:
+
+- `*_result.json`: model predictions
+- `*_evaluation.json`: per-file evaluation summary
+
+### 4. Aggregate Final Metrics
+
+Once inference is finished, compute the overall metrics with:
+
+```bash
+python eval.py output_results/test/qwen3vl_k4_n1_pre0_fps1
+```
+
+This command reads all `*_evaluation.json` files in the result directory and reports:
+
+- overall accuracy
+- current-time QA accuracy
+- past-time QA accuracy
+
+It also saves the aggregated statistics to `overall_statistics.json` in the same output directory.
