@@ -49,8 +49,6 @@ fastapi-cloud-cli==0.11.0
 fastar==0.8.0
 fastrlock==0.8.3
 ffmpeg-python==0.2.0
-# 系统依赖（需单独安装，不会被 pip 自动安装）:
-# conda install -c conda-forge ffmpeg
 filelock==3.20.3
 flashinfer-python==0.5.2
 Flask==3.1.2
@@ -164,8 +162,6 @@ pytz==2025.2
 PyYAML==6.0.3
 pyzmq==27.1.0
 qwen-vl-utils==0.0.14
-# qwen3-vl-embedding 来自本地路径安装，请根据实际情况取消注释或修改路径
-# -e /mnt/shared-storage-user/mineru2-shared/zqt/zqt2/PSVBench/Qwen3-VL-Embedding
 ray==2.53.0
 Record==4.1
 referencing==0.37.0
