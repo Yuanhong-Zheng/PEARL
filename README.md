@@ -2,6 +2,13 @@
   PEARL: Personalized Streaming Video Understanding Model
 </h1>
 
+<p align="center">
+  <img src="assets/paper-teaser.png" alt="PEARL teaser" width="92%">
+</p>
+<p align="center">
+  <em>Task overview from the paper: PEARL focuses on personalized streaming video understanding with continuous video, dynamic concepts, and multi-turn interactions.</em>
+</p>
+
 ## 🛠️ Install
 
 ### 1. Create a Python environment
@@ -37,6 +44,13 @@ pip install -e third_party/Qwen3-VL-Embedding --no-deps
 ---
 
 ## 📦 Dataset
+
+<p align="center">
+  <img src="assets/paper-dataset.png" alt="PEARL-Bench overview" width="92%">
+</p>
+<p align="center">
+  <em>PEARL-Bench overview: frame-level and video-level settings used in the paper.</em>
+</p>
 
 Download the archive from one of the following mirrors:
 
@@ -75,6 +89,13 @@ Please download the following models and place them under `models/`:
 ---
 
 ## 📊 Evaluation
+
+<p align="center">
+  <img src="assets/paper-method.png" alt="PEARL framework" width="92%">
+</p>
+<p align="center">
+  <em>PEARL framework from the paper: concept memory, streaming memory, and concept-aware retrieval for personalized response generation.</em>
+</p>
 
 The evaluation pipeline has four stages:
 
