@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Flask 服务：使用 vLLM 提供 OpenAI 兼容的 API 接口
+Flask service exposing an OpenAI-compatible API via vLLM.
 """
 import os
 import time
@@ -14,14 +14,14 @@ os.environ['VLLM_WORKER_MULTIPROC_METHOD'] = 'spawn'
 
 app = Flask(__name__)
 
-# 全局变量存储模型和处理器
+# Global variables for the model and processor
 llm = None
 processor = None
 model_path = None
 
 
 def prepare_inputs_for_vllm(messages, processor):
-    """准备 vLLM 输入"""
+    """Prepare inputs for vLLM."""
     text = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
     
     # qwen_vl_utils 0.0.14+ required
@@ -46,18 +46,18 @@ def prepare_inputs_for_vllm(messages, processor):
 
 
 def initialize_model(checkpoint_path: str, tensor_parallel_size: int = 1):
-    """初始化模型和处理器"""
+    """Initialize the model and processor."""
     global llm, processor, model_path
     
     if llm is not None:
-        print("模型已经加载，跳过初始化")
+        print("Model is already loaded, skipping initialization")
         return
     
-    print(f"正在加载模型: {checkpoint_path}")
+    print(f"Loading model: {checkpoint_path}")
     print(f"Tensor Parallel Size: {tensor_parallel_size}")
     
     processor = AutoProcessor.from_pretrained(checkpoint_path)
-    print("✓ Processor 加载完成")
+    print("✓ Processor loaded")
     
     llm = LLM(
         model=checkpoint_path,
@@ -67,23 +67,23 @@ def initialize_model(checkpoint_path: str, tensor_parallel_size: int = 1):
         gpu_memory_utilization=0.8,
         max_model_len=200000,
     )
-    print("✓ LLM 模型加载完成")
+    print("✓ LLM model loaded")
     
     model_path = checkpoint_path
 
 
 def convert_openai_messages_to_qwen_format(openai_messages):
     """
-    将 OpenAI 格式的消息转换为 Qwen 格式
-    
-    OpenAI 格式:
+    Convert OpenAI-format messages to Qwen format.
+
+    OpenAI format:
     [{"role": "user", "content": [{"type": "image_url", "image_url": {"url": "file://..."}}, ...]}]
-    
-    Qwen 格式:
+
+    Qwen format:
     [{"role": "user", "content": [{"type": "image", "image": "file://..."}, {"type": "video", "video": "file://..."}, ...]}]
     
     Args:
-        openai_messages: OpenAI 格式的消息列表
+        openai_messages: List of messages in OpenAI format
     """
     qwen_messages = []
     
@@ -92,11 +92,11 @@ def convert_openai_messages_to_qwen_format(openai_messages):
         content = msg.get("content", [])
         
         if isinstance(content, str):
-            # 纯文本消息
+            # Plain-text message
             qwen_messages.append({"role": role, "content": content})
             continue
         
-        # 处理多模态内容
+        # Handle multimodal content
         qwen_content = []
         for item in content:
             item_type = item.get("type", "")
@@ -111,17 +111,17 @@ def convert_openai_messages_to_qwen_format(openai_messages):
             elif item_type == "video_url":
                 video_url_dict = item.get("video_url", {})
                 video_url = video_url_dict.get("url", "")
-                # 构建 video 元素，保留其他参数（如 nframes, video_start, video_end 等）
+                # Build the video item and keep optional parameters
                 video_element = {"type": "video", "video": video_url}
-                # 传递其他参数（如 nframes, fps, min_frames, max_frames, video_start, video_end 等）
+                # Forward optional arguments such as nframes or video_start
                 for key in ["nframes", "fps", "min_frames", "max_frames", "video_start", "video_end"]:
                     if key in video_url_dict:
                         video_element[key] = video_url_dict[key]
                 qwen_content.append(video_element)
             
             else:
-                # 其他类型（如 video_segment）直接保持原样传递
-                print("错误: 不支持的视频类型")
+                # Unsupported content types are not expected here
+                print("Error: unsupported video/content type")
                 import sys;sys.exit(0)
         
         qwen_messages.append({"role": role, "content": qwen_content})
@@ -131,23 +131,23 @@ def convert_openai_messages_to_qwen_format(openai_messages):
 
 @app.route('/v1/chat/completions', methods=['POST'])
 def chat_completions():
-    """OpenAI 兼容的 chat completions 接口"""
+    """OpenAI-compatible chat completions endpoint."""
     try:
         data = request.json
         
-        # 获取参数
+        # Read request arguments
         openai_messages = data.get('messages', [])
         max_tokens = data.get('max_tokens', 1024)
         temperature = data.get('temperature', 0.0)
         top_k = data.get('top_k', -1)
         
-        # 将 OpenAI 格式转换为 Qwen 格式
+        # Convert OpenAI-format messages to Qwen format
         qwen_messages = convert_openai_messages_to_qwen_format(openai_messages)
         
-        # 准备输入
+        # Prepare model inputs
         inputs = prepare_inputs_for_vllm(qwen_messages, processor)
         
-        # 设置采样参数
+        # Configure sampling
         sampling_params = SamplingParams(
             temperature=temperature,
             max_tokens=max_tokens,
@@ -155,13 +155,13 @@ def chat_completions():
             stop_token_ids=[],
         )
         
-        # 只统计模型 generate 阶段的耗时（不含多模态预处理）
+        # Measure generate time only, excluding multimodal preprocessing
         generate_t0 = time.perf_counter()
         outputs = llm.generate([inputs], sampling_params=sampling_params)
         inference_time_ms = round((time.perf_counter() - generate_t0) * 1000)
         generated_text = outputs[0].outputs[0].text
         
-        # 构造 OpenAI 格式的响应
+        # Build an OpenAI-style response
         response = {
             "id": "chatcmpl-" + os.urandom(12).hex(),
             "object": "chat.completion",
@@ -182,14 +182,14 @@ def chat_completions():
                 "completion_tokens": -1,
                 "total_tokens": -1
             },
-            # 自定义字段：纯模型推理耗时（ms）
+            # Custom field: model-only inference time in milliseconds
             "inference_time_ms": inference_time_ms
         }
         
         return jsonify(response)
     
     except Exception as e:
-        print(f"错误: {str(e)}")
+        print(f"Error: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
@@ -197,7 +197,7 @@ def chat_completions():
 
 @app.route('/health', methods=['GET'])
 def health():
-    """健康检查接口"""
+    """Health check endpoint."""
     return jsonify({
         "status": "ok",
         "model_loaded": llm is not None,
@@ -206,51 +206,50 @@ def health():
 
 
 def main():
-    """主函数"""
+    """Main entry point."""
     import argparse
     
-    parser = argparse.ArgumentParser(description="vLLM Flask 服务")
+    parser = argparse.ArgumentParser(description="vLLM Flask service")
     parser.add_argument(
         "--model_path",
         type=str,
         default="models/Qwen3-VL-8B-Instruct",
-        help="模型路径"
+        help="Model path"
     )
     parser.add_argument(
         "--tensor_parallel_size",
         type=int,
         default=1,
-        help="张量并行大小"
+        help="Tensor parallel size"
     )
     parser.add_argument(
         "--host",
         type=str,
         default="0.0.0.0",
-        help="服务主机地址"
+        help="Server host address"
     )
     parser.add_argument(
         "--port",
         type=int,
         default=22003,
-        help="服务端口"
+        help="Server port"
     )
     
     args = parser.parse_args()
     
-    # 初始化模型
+    # Initialize the model
     print("=" * 80)
-    print("初始化 vLLM Flask 服务")
+    print("Initializing vLLM Flask service")
     print("=" * 80)
     initialize_model(args.model_path, args.tensor_parallel_size)
     
     print("\n" + "=" * 80)
-    print(f"启动 Flask 服务: {args.host}:{args.port}")
+    print(f"Starting Flask service on {args.host}:{args.port}")
     print("=" * 80 + "\n")
     
-    # 启动 Flask 服务
+    # Start the Flask service
     app.run(host=args.host, port=args.port, debug=False, threaded=False)
 
 
 if __name__ == "__main__":
     main()
-

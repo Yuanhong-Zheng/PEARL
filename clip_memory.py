@@ -1,6 +1,6 @@
 """
-Memory System - 视频片段记忆系统
-使用 Qwen3-VL-Embedding API 进行语义相似度检索
+Memory System - Video clip memory system.
+Uses the Qwen3-VL-Embedding API for semantic similarity retrieval.
 """
 import json
 import requests
@@ -11,46 +11,46 @@ import hashlib
 
 
 class ClipMemory:
-    """视频片段记忆类"""
+    """Video clip memory."""
     
     def __init__(self, json_path: str, api_base_url: str = "http://localhost:5000", 
                  use_video_embedding: bool = False, batch_size: int = 10,
                  cache_dir: str = None, force_recompute: bool = False):
         """
-        初始化记忆系统
+        Initialize the memory system.
         
         Args:
-            json_path: clips 信息 JSON 文件路径
-            api_base_url: Embedding API 服务基础地址
-            use_video_embedding: 是否使用视频 Embedding 进行检索（True=使用视频，False=使用文本描述）
-            batch_size: 预计算时的批处理大小，视频模式建议 5-10，文本模式可以更大（如 50-100）
-            cache_dir: 缓存目录，如果为 None，则使用 json_path 所在目录
-            force_recompute: 是否强制重新计算 embeddings（忽略缓存）
+            json_path: Path to the clips-info JSON file
+            api_base_url: Base URL for the embedding API
+            use_video_embedding: Whether to use video embeddings for retrieval
+            batch_size: Batch size for precomputation
+            cache_dir: Cache directory; if None, use the JSON file's directory
+            force_recompute: Whether to recompute embeddings and ignore the cache
         """
         self.json_path = json_path
         self.api_base_url = api_base_url
         self.use_video_embedding = use_video_embedding
         self.clips_data = []
         self.source_video = ""
-        self.clip_embeddings = None  # 存储预计算的 embeddings
+        self.clip_embeddings = None  # Stores precomputed embeddings
         self.force_recompute = force_recompute
         
-        # 设置缓存目录
+        # Set the cache directory
         if cache_dir is None:
-            # 默认使用 json_path 所在目录
+            # Default to the directory containing json_path
             cache_dir = str(Path(json_path).parent)
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         
-        # 加载数据
+        # Load clip metadata
         self._load_clips()
         
-        # 预计算所有 clip 的 embeddings（带缓存功能）
+        # Precompute embeddings for all clips with caching
         self._precompute_embeddings(batch_size=batch_size)
         
     def _load_clips(self):
-        """从 JSON 文件加载片段信息"""
-        print(f"正在加载片段数据: {self.json_path}")
+        """Load clip metadata from a JSON file."""
+        print(f"Loading clip data: {self.json_path}")
         
         with open(self.json_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
@@ -67,7 +67,7 @@ class ClipMemory:
             self.source_video = str(source_video_path)
         clips = data.get("clips", [])
         
-        # 提取所需字段
+        # Extract the fields we need
         for clip in clips:
             clip_path = clip.get("clip_path")
             if clip_path:
@@ -88,61 +88,61 @@ class ClipMemory:
             }
             self.clips_data.append(clip_info)
         
-        print(f"成功加载 {len(self.clips_data)} 个视频片段")
+        print(f"Loaded {len(self.clips_data)} video clip(s)")
     
     def _get_cache_path(self) -> Path:
         """
-        生成缓存文件路径
-        缓存文件名基于 json_path 和 embedding 类型
+        Generate the cache file path.
+        The cache file name depends on json_path and embedding type.
         
         Returns:
-            缓存文件的 Path 对象
+            Path to the cache file
         """
-        # 获取 json 文件名（不含扩展名）
+        # Get the JSON filename without extension
         json_filename = Path(self.json_path).stem
         
-        # 根据 embedding 类型添加后缀
+        # Add a suffix based on the embedding type
         embedding_suffix = "video" if self.use_video_embedding else "text"
         
-        # 生成缓存文件名
+        # Build the cache filename
         cache_filename = f"{json_filename}_embeddings_{embedding_suffix}.npy"
         
         return self.cache_dir / cache_filename
     
     def _get_clips_hash(self) -> str:
         """
-        计算 clips 数据的哈希值，用于验证缓存有效性
+        Compute a hash of the clip data to validate the cache.
         
         Returns:
-            clips 数据的 MD5 哈希值
+            MD5 hash of the clip data
         """
-        # 提取关键信息（clip_id, clip_path, description）
+        # Extract key fields (clip_id, clip_path, description)
         clips_key_info = []
         for clip in self.clips_data:
             if self.use_video_embedding:
-                # 视频模式：使用 clip_path
+                # Video mode: use clip_path
                 key = f"{clip['clip_id']}:{clip['clip_path']}"
             else:
-                # 文本模式：使用 description
+                # Text mode: use description
                 key = f"{clip['clip_id']}:{clip['description']}"
             clips_key_info.append(key)
         
-        # 计算哈希
+        # Compute the hash
         clips_str = "||".join(clips_key_info)
         hash_obj = hashlib.md5(clips_str.encode('utf-8'))
         return hash_obj.hexdigest()
     
     def _save_embeddings_cache(self, embeddings: np.ndarray):
         """
-        保存 embeddings 到缓存文件
+        Save embeddings to the cache file.
         
         Args:
-            embeddings: 要保存的 embeddings 数组
+            embeddings: Embedding array to save
         """
         cache_path = self._get_cache_path()
         clips_hash = self._get_clips_hash()
         
-        # 保存 embeddings 和元数据
+        # Save embeddings and metadata
         cache_data = {
             'embeddings': embeddings,
             'clips_hash': clips_hash,
@@ -151,85 +151,85 @@ class ClipMemory:
         }
         
         np.save(cache_path, cache_data, allow_pickle=True)
-        print(f"✓ Embeddings 已缓存到: {cache_path}")
+        print(f"✓ Embeddings cached at: {cache_path}")
     
     def _load_embeddings_cache(self) -> Optional[np.ndarray]:
         """
-        从缓存文件加载 embeddings
+        Load embeddings from the cache file.
         
         Returns:
-            加载的 embeddings 数组，如果缓存无效则返回 None
+            Loaded embedding array, or None if the cache is invalid
         """
         cache_path = self._get_cache_path()
         
-        # 检查缓存文件是否存在
+        # Check whether the cache file exists
         if not cache_path.exists():
-            print(f"未找到缓存文件: {cache_path}")
+            print(f"Cache file not found: {cache_path}")
             return None
         
         try:
-            # 加载缓存数据
+            # Load cached data
             cache_data = np.load(cache_path, allow_pickle=True).item()
             
-            # 验证缓存有效性
+            # Validate cache contents
             cached_hash = cache_data.get('clips_hash', '')
             current_hash = self._get_clips_hash()
             
             if cached_hash != current_hash:
-                print(f"⚠ 缓存已过期（clips 数据已更改），将重新计算")
+                print("⚠ Cache is stale because clip data changed; recomputing")
                 return None
             
             cached_num_clips = cache_data.get('num_clips', 0)
             if cached_num_clips != len(self.clips_data):
-                print(f"⚠ 缓存片段数量不匹配（缓存: {cached_num_clips}, 当前: {len(self.clips_data)}），将重新计算")
+                print(f"⚠ Cache clip count mismatch (cache: {cached_num_clips}, current: {len(self.clips_data)}); recomputing")
                 return None
             
             embeddings = cache_data['embeddings']
-            print(f"✓ 从缓存加载 embeddings: {cache_path}")
-            print(f"  形状: {embeddings.shape}, 片段数: {len(self.clips_data)}")
+            print(f"✓ Loaded embeddings from cache: {cache_path}")
+            print(f"  Shape: {embeddings.shape}, number of clips: {len(self.clips_data)}")
             
             return embeddings
             
         except Exception as e:
-            print(f"⚠ 加载缓存文件时出错: {e}，将重新计算")
+            print(f"⚠ Error loading cache file: {e}; recomputing")
             return None
     
     def _precompute_embeddings(self, batch_size: int = 10):
         """
-        预计算所有 clip 的 embeddings（带缓存功能）
+        Precompute embeddings for all clips with caching.
         
         Args:
-            batch_size: 批处理大小，视频模式建议使用较小的值（如 5-10），文本模式可以更大
+            batch_size: Batch size; video mode typically benefits from a smaller value
         """
-        embedding_type = "视频" if self.use_video_embedding else "文本描述"
+        embedding_type = "video" if self.use_video_embedding else "text description"
         
-        # 尝试从缓存加载
+        # Try to load from cache first
         if not self.force_recompute:
-            print(f"正在检查 {embedding_type} embeddings 缓存...")
+            print(f"Checking cache for {embedding_type} embeddings...")
             cached_embeddings = self._load_embeddings_cache()
             
             if cached_embeddings is not None:
                 self.clip_embeddings = cached_embeddings
-                print(f"✓ 成功从缓存加载 embeddings，跳过重新计算")
+                print("✓ Embeddings loaded from cache; skipping recomputation")
                 return
         else:
-            print(f"force_recompute=True，将忽略缓存并重新计算")
+            print("force_recompute=True, ignoring cache and recomputing")
         
-        print(f"正在预计算 {len(self.clips_data)} 个片段的 {embedding_type} embeddings...")
+        print(f"Precomputing {embedding_type} embeddings for {len(self.clips_data)} clip(s)...")
         
-        # 根据选项构造输入数据
+        # Build input payloads based on the selected mode
         if self.use_video_embedding:
-            # 使用视频文件路径
+            # Use video file paths
             inputs = [{"video": clip["clip_path"]} for clip in self.clips_data]
-            # 视频处理较慢，使用较小的批处理大小
+            # Video processing is slower, so cap the batch size
             if batch_size > 10:
                 batch_size = 10
-                print(f"视频模式下自动调整批处理大小为 {batch_size}")
+                print(f"Automatically reduced batch size to {batch_size} for video mode")
         else:
-            # 使用文本描述
+            # Use text descriptions
             inputs = [{"text": clip["description"]} for clip in self.clips_data]
         
-        # 分批处理
+        # Process in batches
         all_embeddings = []
         total_batches = (len(inputs) + batch_size - 1) // batch_size
         
@@ -240,52 +240,52 @@ class ClipMemory:
                 batch = inputs[i:i + batch_size]
                 batch_num = i // batch_size + 1
                 
-                print(f"处理批次 {batch_num}/{total_batches} ({len(batch)} 个片段)...")
+                print(f"Processing batch {batch_num}/{total_batches} ({len(batch)} clip(s))...")
                 
-                # 构造请求数据
+                # Build the request payload
                 request_data = {"inputs": batch}
                 
-                response = requests.post(api_url, json=request_data, timeout=300)  # 5分钟超时
+                response = requests.post(api_url, json=request_data, timeout=300)  # 5-minute timeout
                 response.raise_for_status()
                 
                 result = response.json()
                 batch_embeddings = result["embeddings"]
                 all_embeddings.extend(batch_embeddings)
                 
-                print(f"  ✓ 批次 {batch_num} 完成")
+                print(f"  ✓ Batch {batch_num} finished")
             
-            # 转换为 numpy 数组以便后续计算
+            # Convert to a NumPy array for downstream computation
             self.clip_embeddings = np.array(all_embeddings)
             
-            print(f"✓ 成功预计算所有 {embedding_type} embeddings，形状: {self.clip_embeddings.shape}")
+            print(f"✓ Successfully precomputed all {embedding_type} embeddings, shape: {self.clip_embeddings.shape}")
             
-            # 保存到缓存
+            # Save to cache
             self._save_embeddings_cache(self.clip_embeddings)
             
         except requests.exceptions.RequestException as e:
-            print(f"✗ API 请求错误: {e}")
+            print(f"✗ API request error: {e}")
             if hasattr(e, 'response') and e.response is not None:
                 try:
                     error_detail = e.response.json()
-                    print(f"  错误详情: {error_detail}")
+                    print(f"  Error details: {error_detail}")
                 except:
-                    print(f"  响应内容: {e.response.text[:500]}")
+                    print(f"  Response body: {e.response.text[:500]}")
             raise
         except Exception as e:
-            print(f"✗ 处理响应时出错: {e}")
+            print(f"✗ Error while processing the response: {e}")
             raise
     
     def _get_query_embedding(self, query: str) -> np.ndarray:
         """
-        获取查询文本的 embedding
+        Get the embedding for a query string.
         
         Args:
-            query: 用户查询文本
+            query: User query text
             
         Returns:
-            query 的 embedding 向量
+            Query embedding vector
         """
-        # 构造请求数据
+        # Build the request payload
         request_data = {
             "inputs": [{"text": query}]
         }
@@ -296,95 +296,95 @@ class ClipMemory:
             response.raise_for_status()
             
             result = response.json()
-            embedding = result["embeddings"][0]  # 只有一个 query，取第一个
+            embedding = result["embeddings"][0]  # Only one query, so use the first entry
             
             return np.array(embedding)
             
         except requests.exceptions.RequestException as e:
-            print(f"API 请求错误: {e}")
+            print(f"API request error: {e}")
             raise
         except Exception as e:
-            print(f"处理响应时出错: {e}")
+            print(f"Error while processing the response: {e}")
             raise
     
     def search(self, query: str, top_k: int = 5) -> List[Dict]:
         """
-        根据查询文本搜索最相关的视频片段
+        Search for the most relevant video clips given a text query.
         
         Args:
-            query: 查询文本
-            top_k: 返回前 k 个最相关的片段
+            query: Query text
+            top_k: Number of top results to return
             
         Returns:
-            包含片段信息和相似度分数的列表
+            A list containing clip information and similarity scores
         """
-        embedding_type = "视频 Embedding" if self.use_video_embedding else "文本 Embedding"
+        embedding_type = "video embedding" if self.use_video_embedding else "text embedding"
         
-        print(f"\n查询: {query}")
-        print(f"检索模式: {embedding_type}")
-        print(f"在 {len(self.clips_data)} 个片段中搜索...")
+        print(f"\nQuery: {query}")
+        print(f"Retrieval mode: {embedding_type}")
+        print(f"Searching across {len(self.clips_data)} clip(s)...")
         
-        # 获取查询的 embedding
+        # Get the query embedding
         query_embedding = self._get_query_embedding(query)
         
-        # 计算查询与所有片段的相似度
-        # 使用矩阵乘法: query_embedding @ clip_embeddings.T
+        # Compute similarity scores between the query and all clips
+        # Matrix multiplication: query_embedding @ clip_embeddings.T
         similarity_scores = query_embedding @ self.clip_embeddings.T
         
-        # 将相似度分数添加到片段信息中
+        # Attach similarity scores to clip metadata
         results = []
         for i, clip in enumerate(self.clips_data):
             result = clip.copy()
             result["similarity_score"] = float(similarity_scores[i])
             results.append(result)
         
-        # 按相似度降序排序
+        # Sort by similarity score in descending order
         results.sort(key=lambda x: x["similarity_score"], reverse=True)
         
-        # 返回 top k 个结果
+        # Return the top-k results
         top_results = results[:top_k]
         
         return top_results
     
     def print_search_results(self, results: List[Dict], show_full_path: bool = False):
         """
-        打印搜索结果
+        Print search results.
         
         Args:
-            results: 搜索结果列表
-            show_full_path: 是否显示完整路径
+            results: Search results
+            show_full_path: Whether to show full paths
         """
         if not results:
-            print("没有找到匹配的片段")
+            print("No matching clips found")
             return
         
-        print(f"\n找到 {len(results)} 个最相关的片段:")
+        print(f"\nFound {len(results)} most relevant clip(s):")
         print("=" * 100)
         
         for i, result in enumerate(results, 1):
             clip_path = result["clip_path"] if show_full_path else result["clip_path"].split("/")[-1]
             
-            print(f"\n排名 #{i}")
-            print(f"  片段 ID: {result['clip_id']}")
-            print(f"  相似度: {result['similarity_score']:.4f}")
-            print(f"  时间范围: {result['start_time']:.2f}s - {result['end_time']:.2f}s (时长: {result['duration']:.2f}s)")
-            print(f"  描述: {result['description']}")
+            print(f"\nRank #{i}")
+            print(f"  Clip ID: {result['clip_id']}")
+            print(f"  Similarity: {result['similarity_score']:.4f}")
+            print(f"  Time range: {result['start_time']:.2f}s - {result['end_time']:.2f}s (duration: {result['duration']:.2f}s)")
+            print(f"  Description: {result['description']}")
             if show_full_path:
-                print(f"  路径: {clip_path}")
+                print(f"  Path: {clip_path}")
             else:
-                print(f"  文件名: {clip_path}")
+                print(f"  Filename: {clip_path}")
         
         print("=" * 100)
     
     def get_clip_by_id(self, clip_id: int) -> Optional[Dict]:
         """
-        根据 clip_id 获取片段信息
+        Get clip metadata by clip_id.
         
         Args:
-            clip_id: 片段 ID
+            clip_id: Clip ID
             
         Returns:
-            片段信息字典，如果不存在则返回 None
+            Clip metadata dict, or None if not found
         """
         for clip in self.clips_data:
             if clip["clip_id"] == clip_id:
@@ -393,18 +393,18 @@ class ClipMemory:
     
     def get_clips_in_time_range(self, start_time: float, end_time: float) -> List[Dict]:
         """
-        获取指定时间范围内的所有片段
+        Get all clips within a specified time range.
         
         Args:
-            start_time: 开始时间（秒）
-            end_time: 结束时间（秒）
+            start_time: Start time in seconds
+            end_time: End time in seconds
             
         Returns:
-            片段信息列表
+            List of clip metadata
         """
         results = []
         for clip in self.clips_data:
-            # 检查片段是否与指定时间范围有重叠
+            # Check whether the clip overlaps with the requested time range
             if clip["start_time"] < end_time and clip["end_time"] > start_time:
                 results.append(clip.copy())
         
@@ -412,10 +412,10 @@ class ClipMemory:
     
     def get_statistics(self) -> Dict:
         """
-        获取数据集统计信息
+        Get dataset statistics.
         
         Returns:
-            统计信息字典
+            Statistics dictionary
         """
         if not self.clips_data:
             return {}
@@ -438,59 +438,59 @@ class ClipMemory:
         return stats
     
     def print_statistics(self):
-        """打印统计信息"""
+        """Print dataset statistics."""
         stats = self.get_statistics()
         
-        print("\n数据集统计信息:")
+        print("\nDataset statistics:")
         print("=" * 80)
-        print(f"源视频: {stats.get('source_video', 'N/A')}")
-        print(f"总片段数: {stats.get('total_clips', 0)}")
-        print(f"总时长: {stats.get('total_duration', 0):.2f} 秒")
-        print(f"平均片段时长: {stats.get('avg_duration', 0):.2f} 秒")
-        print(f"最短片段: {stats.get('min_duration', 0):.2f} 秒")
-        print(f"最长片段: {stats.get('max_duration', 0):.2f} 秒")
+        print(f"Source video: {stats.get('source_video', 'N/A')}")
+        print(f"Total clips: {stats.get('total_clips', 0)}")
+        print(f"Total duration: {stats.get('total_duration', 0):.2f} seconds")
+        print(f"Average clip duration: {stats.get('avg_duration', 0):.2f} seconds")
+        print(f"Shortest clip: {stats.get('min_duration', 0):.2f} seconds")
+        print(f"Longest clip: {stats.get('max_duration', 0):.2f} seconds")
         time_range = stats.get('time_range', {})
-        print(f"时间范围: {time_range.get('start', 0):.2f}s - {time_range.get('end', 0):.2f}s")
+        print(f"Time range: {time_range.get('start', 0):.2f}s - {time_range.get('end', 0):.2f}s")
         print("=" * 80)
 
 
 def main():
-    """示例用法"""
-    # 初始化记忆系统
+    """Example usage."""
+    # Initialize the memory system
     json_path = "/mnt/shared-storage-user/mineru2-shared/zqt/zqt2/PSVBench/0121/output_clips/chunwu_middle/chunwu_middle_clips_info.json"
     
-    # 示例1: 使用文本描述的 Embedding 进行检索（默认）
+    # Example 1: retrieve using text-description embeddings (default)
     print("=" * 100)
-    print("示例1: 使用文本描述 Embedding 进行检索（带缓存）")
+    print("Example 1: Retrieval with text-description embeddings (with caching)")
     print("=" * 100)
-    # 第一次运行会计算并缓存 embeddings，第二次运行会直接从缓存加载
+    # The first run computes and caches embeddings; later runs load from cache
     memory_text = ClipMemory(
         json_path, 
         use_video_embedding=False, 
         batch_size=50,
-        cache_dir="./.cache",  # 指定缓存目录
-        force_recompute=False  # False=使用缓存，True=强制重新计算
+        cache_dir="./.cache",  # Explicit cache directory
+        force_recompute=False  # False = use cache, True = force recomputation
     )
     memory_text.print_statistics()
     
-    query = "一个女孩在厨房做饭"
+    query = "A girl is cooking in the kitchen"
     results_text = memory_text.search(query, top_k=3)
     memory_text.print_search_results(results_text, show_full_path=False)
     
     print("\n\n")
     
-    # 示例2: 使用视频 Embedding 进行检索（带缓存）
+    # Example 2: retrieve using video embeddings (with caching)
     print("=" * 100)
-    print("示例2: 使用视频 Embedding 进行检索（带缓存）")
+    print("Example 2: Retrieval with video embeddings (with caching)")
     print("=" * 100)
-    # 视频模式使用较小的批处理大小，避免服务器过载
-    # 第一次运行会比较慢（需要编码所有视频），第二次运行会很快（从缓存加载）
+    # Video mode uses a smaller batch size to avoid overloading the server
+    # The first run is slower because all videos must be encoded; later runs use the cache
     memory_video = ClipMemory(
         json_path, 
         use_video_embedding=True, 
         batch_size=5,
-        cache_dir="./.cache",  # 指定缓存目录
-        force_recompute=False  # False=使用缓存，True=强制重新计算
+        cache_dir="./.cache",  # Explicit cache directory
+        force_recompute=False  # False = use cache, True = force recomputation
     )
     
     results_video = memory_video.search(query, top_k=3)
@@ -499,4 +499,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

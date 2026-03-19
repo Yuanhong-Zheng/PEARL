@@ -1,6 +1,7 @@
 """
-为 concept_db.json 中的每个概念生成特征性描述
-用于在检索时替换自定义概念名称，帮助 embedding 模型更好地理解查询内容
+Generate distinctive descriptions for each concept in concept_db.json.
+These descriptions are used during retrieval to replace custom concept names
+and help the embedding model better understand the query.
 """
 import json
 import argparse
@@ -10,17 +11,17 @@ from openai import OpenAI
 
 def generate_distinctive_description(client, model_path, image_path, concept_name, original_description):
     """
-    为概念图像生成特征性描述
+    Generate a distinctive description for a concept image.
     
     Args:
         client: OpenAI client
-        model_path: 模型路径
-        image_path: 图像路径
-        concept_name: 概念名称
-        original_description: 原始描述
+        model_path: Model path
+        image_path: Image path
+        concept_name: Concept name
+        original_description: Original description
         
     Returns:
-        特征性描述文本
+        Distinctive description text
     """
     prompt = f"""Based on the image and the original description provided, generate a concise visual description of this character/object that focuses on PERMANENT/STABLE features for video clip retrieval.
 
@@ -88,88 +89,88 @@ def process_concept_database(
     force_regenerate: bool = False
 ):
     """
-    处理概念数据库，为每个概念生成特征性描述
+    Process a concept database and generate a distinctive description for each concept.
     
     Args:
-        concept_db_path: concept_db.json 文件路径
-        api_base_url: API 服务地址
-        model_path: 模型路径
-        force_regenerate: 是否强制重新生成已有的描述
+        concept_db_path: Path to concept_db.json
+        api_base_url: API service URL
+        model_path: Model path
+        force_regenerate: Whether to forcibly regenerate existing descriptions
     """
     print("=" * 80)
-    print("开始为概念生成特征性描述...")
+    print("Generating distinctive descriptions for concepts...")
     print("=" * 80)
     
-    # 转换为绝对路径
+    # Resolve to an absolute path
     concept_db_path = str(Path(concept_db_path).resolve())
     
-    # 读取概念数据库
-    print(f"\n读取概念数据库: {concept_db_path}")
+    # Load the concept database
+    print(f"\nLoading concept database: {concept_db_path}")
     with open(concept_db_path, 'r', encoding='utf-8') as f:
         db_data = json.load(f)
     
     concepts = db_data.get('concepts', [])
-    print(f"找到 {len(concepts)} 个概念\n")
+    print(f"Found {len(concepts)} concept(s)\n")
     
     if not concepts:
-        print("⚠ 概念数据库为空，无需处理")
+        print("⚠ The concept database is empty; nothing to process")
         return
     
-    # 初始化 OpenAI Client
-    print("初始化模型 API...")
+    # Initialize the OpenAI client
+    print("Initializing model API...")
     client = OpenAI(
         api_key="EMPTY",
         base_url=api_base_url,
         timeout=3600
     )
-    print(f"✓ 模型 API 初始化完成")
-    print(f"  API 地址: {api_base_url}")
-    print(f"  模型路径: {model_path}\n")
+    print("✓ Model API initialized")
+    print(f"  API URL: {api_base_url}")
+    print(f"  Model path: {model_path}\n")
     
-    # 统计信息
+    # Statistics
     processed_count = 0
     skipped_count = 0
     failed_count = 0
     
-    # 为每个概念生成特征性描述
+    # Generate a distinctive description for each concept
     for i, concept in enumerate(concepts, 1):
         concept_name = concept.get('concept_name', 'Unknown')
         frame_path = concept.get('frame_path')
         original_description = concept.get('description', '')
         
-        print(f"[{i}/{len(concepts)}] 处理概念: {concept_name}")
+        print(f"[{i}/{len(concepts)}] Processing concept: {concept_name}")
         
         if not frame_path:
-            print(f"  ⚠ 没有 frame_path，跳过\n")
+            print("  ⚠ No frame_path found, skipping\n")
             skipped_count += 1
             continue
         
-        # 将相对路径转换为绝对路径
+        # Convert relative paths to absolute paths
         frame_path_obj = Path(frame_path)
         if not frame_path_obj.is_absolute():
-            # 相对于 concept_db.json 所在目录
+            # Resolve relative to the directory containing concept_db.json
             db_dir = Path(concept_db_path).parent
             frame_path = str((db_dir / frame_path).resolve())
         
-        print(f"  图像路径: {frame_path}")
+        print(f"  Image path: {frame_path}")
         
-        # 检查图像是否存在
+        # Verify the image exists
         if not Path(frame_path).exists():
-            print(f"  ✗ 图像文件不存在，跳过\n")
+            print("  ✗ Image file does not exist, skipping\n")
             skipped_count += 1
             continue
         
-        # 如果已经有特征性描述且不强制重新生成，跳过
+        # Skip concepts that already have a description unless regeneration is forced
         if not force_regenerate and 'retrieval_description' in concept and concept['retrieval_description']:
-            print(f"  ✓ 已存在特征性描述:")
+            print("  ✓ Distinctive description already exists:")
             print(f"    {concept['retrieval_description']}")
-            print(f"  跳过（默认会重新生成，使用 --skip-existing 跳过已有描述）\n")
+            print("  Skipping (use --skip-existing to keep existing descriptions)\n")
             skipped_count += 1
             continue
         
         try:
-            # 生成特征性描述
-            print(f"  正在生成特征性描述...")
+            # Generate the description
+            print("  Generating distinctive description...")
             description = generate_distinctive_description(
                 client=client,
                 model_path=model_path,
@@ -178,79 +179,78 @@ def process_concept_database(
                 original_description=original_description
             )
             
-            # 添加到概念中
+            # Store it in the concept entry
             concept['retrieval_description'] = description
             
-            print(f"  ✓ 生成成功:")
+            print("  ✓ Generated successfully:")
             print(f"    {description}\n")
             processed_count += 1
             
         except Exception as e:
-            print(f"  ✗ 生成失败: {e}\n")
+            print(f"  ✗ Generation failed: {e}\n")
             concept['retrieval_description'] = ""
             failed_count += 1
     
-    # 保存更新后的数据库
+    # Save the updated database
     if processed_count > 0:
-        print(f"\n保存更新后的概念数据库...")
+        print("\nSaving updated concept database...")
         with open(concept_db_path, 'w', encoding='utf-8') as f:
             json.dump(db_data, f, ensure_ascii=False, indent=2)
         
-        print(f"✓ 已保存到: {concept_db_path}")
+        print(f"✓ Saved to: {concept_db_path}")
     
-    # 打印统计信息
+    # Print statistics
     print("\n" + "=" * 80)
-    print("处理完成！统计信息:")
-    print(f"  总概念数: {len(concepts)}")
-    print(f"  成功生成: {processed_count}")
-    print(f"  跳过: {skipped_count}")
-    print(f"  失败: {failed_count}")
+    print("Done! Statistics:")
+    print(f"  Total concepts: {len(concepts)}")
+    print(f"  Generated successfully: {processed_count}")
+    print(f"  Skipped: {skipped_count}")
+    print(f"  Failed: {failed_count}")
     print("=" * 80)
 
 
 def parse_args():
-    """解析命令行参数"""
+    """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
-        description="为概念数据库生成特征性描述，用于检索时替换抽象的概念名称"
+        description="Generate distinctive descriptions for a concept database so abstract concept names can be replaced during retrieval"
     )
     parser.add_argument(
         "--concept_db_path",
         type=str,
         default="/mnt/shared-storage-user/mineru2-shared/zqt/zqt2/PSVBench/0121/.cache/5limi/concept_db.json",
-        help="concept_db.json 文件路径（默认: ./.cache/concept_db.json）"
+        help="Path to concept_db.json (default: ./.cache/concept_db.json)"
     )
     parser.add_argument(
         "--api_base_url",
         type=str,
         default="http://127.0.0.1:22003/v1",
-        help="API 服务地址（默认: http://127.0.0.1:22003/v1）"
+        help="API service URL (default: http://127.0.0.1:22003/v1)"
     )
     parser.add_argument(
         "--model_path",
         type=str,
         default="/mnt/shared-storage-user/mineru2-shared/zqt/zqt2/models/OpenGVLab/InternVL3_5-8B",
-        help="模型路径"
+        help="Model path"
     )
     parser.add_argument(
         "--skip-existing",
         action="store_true",
-        help="跳过已有描述，不重新生成（默认: False，即默认重新生成所有描述）"
+        help="Skip existing descriptions instead of regenerating them (default: False, meaning regenerate all descriptions)"
     )
     return parser.parse_args()
 
 
 def main():
-    """主函数"""
+    """Main entry point."""
     args = parse_args()
     
     process_concept_database(
         concept_db_path=args.concept_db_path,
         api_base_url=args.api_base_url,
         model_path=args.model_path,
-        force_regenerate=not args.skip_existing  # 默认重新生成，除非指定 --skip-existing
+        force_regenerate=not args.skip_existing  # Regenerate by default unless --skip-existing is provided
     )
 
 
 if __name__ == "__main__":
     main()
-

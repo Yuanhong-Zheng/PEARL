@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-视频场景分割工具
-使用 PySceneDetect 将视频按场景切分成多个 clip
+Video scene splitting tool.
+Uses PySceneDetect to split a video into multiple clips by scene.
 """
 
 import argparse
@@ -16,17 +16,17 @@ from scenedetect.detectors import ContentDetector
 
 def split_single_scene(video_path, start_time, end_time, output_path, scene_idx, total_scenes, output_fps=None):
     """
-    使用 ffmpeg 切割单个场景
-    
-    参数:
-        video_path: 输入视频路径
-        start_time: 开始时间（秒）
-        end_time: 结束时间（秒）
-        output_path: 输出文件路径
-        scene_idx: 场景索引（用于显示进度）
-        total_scenes: 总场景数
-    
-    返回:
+    Split a single scene using ffmpeg.
+
+    Args:
+        video_path: Input video path
+        start_time: Start time in seconds
+        end_time: End time in seconds
+        output_path: Output file path
+        scene_idx: Scene index for progress display
+        total_scenes: Total number of scenes
+
+    Returns:
         (scene_idx, success, error_message)
     """
     duration = float(end_time) - float(start_time)
@@ -49,7 +49,7 @@ def split_single_scene(video_path, start_time, end_time, output_path, scene_idx,
         '-pix_fmt', 'yuv420p',
         '-avoid_negative_ts', 'make_zero',
         '-movflags', '+faststart',
-        '-y',  # 覆盖已存在的文件
+        '-y',  # Overwrite existing files
         output_path
     ]
     
@@ -75,73 +75,73 @@ def split_video_by_scenes(
     max_clip_duration: float = 10.0
 ):
     """
-    将视频按场景分割成多个 clip
-    
-    参数:
-        video_path: 输入视频路径
-        output_dir: 输出目录
-        threshold: 场景检测阈值 (0-255)，值越小越敏感，默认 27.0
-        min_scene_len: 最小场景长度（帧数），默认 15 帧
-        min_clip_duration: 最小 clip 时长（秒），过滤掉小于该时长的片段，默认 3.0 秒
-        max_clip_duration: 最大 clip 时长（秒），超过该时长的场景会被分割成多个片段，默认 10.0 秒
+    Split a video into multiple clips by detected scenes.
+
+    Args:
+        video_path: Input video path
+        output_dir: Output directory
+        threshold: Scene detection threshold (0-255); lower values are more sensitive
+        min_scene_len: Minimum scene length in frames
+        min_clip_duration: Minimum clip duration in seconds
+        max_clip_duration: Maximum clip duration in seconds; longer scenes are split further
     """
     
-    # 固定输出格式为 mp4，默认显示进度条
+    # Use mp4 output and show a progress bar by default
     output_format = "mp4"
     show_progress = True
     
-    # 检查视频文件是否存在
+    # Check whether the video file exists
     if not os.path.exists(video_path):
-        raise FileNotFoundError(f"视频文件不存在: {video_path}")
+        raise FileNotFoundError(f"Video file does not exist: {video_path}")
     
-    # 获取视频文件名（不含扩展名）
+    # Get the video filename without extension
     video_name = os.path.splitext(os.path.basename(video_path))[0]
     
-    # 在output_dir下创建以视频名字命名的子文件夹
+    # Create a subdirectory named after the video inside output_dir
     clips_output_dir = os.path.join(output_dir, video_name)
     
-    # 如果该视频的输出目录已存在，跳过处理
+    # Skip processing if the output directory for this video already exists
     if os.path.exists(clips_output_dir):
-        print(f"检测到已存在的输出目录，跳过处理: {clips_output_dir}")
+        print(f"Existing output directory detected, skipping: {clips_output_dir}")
         json_output_path = os.path.join(clips_output_dir, f"{video_name}_clips_info.json")
         if os.path.exists(json_output_path):
-            print(f"✓ 已存在的 JSON 信息文件: {json_output_path}")
+            print(f"✓ Existing JSON metadata file: {json_output_path}")
         return
     
-    # 创建新的输出目录
+    # Create a fresh output directory
     os.makedirs(clips_output_dir, exist_ok=True)
     
-    # 创建视频管理器
+    # Create the video manager
     video_manager = VideoManager([video_path])
     scene_manager = SceneManager()
     
-    # 添加内容检测器
+    # Add the content detector
     scene_manager.add_detector(
         ContentDetector(threshold=threshold, min_scene_len=min_scene_len)
     )
     
-    # 设置基础时间码
+    # Set the base timecode
     base_timecode = video_manager.get_base_timecode()
     
-    # 开始视频管理器
+    # Start the video manager
     video_manager.set_downscale_factor()
     video_manager.start()
     
-    print(f"开始分析视频: {video_path}")
-    print(f"检测阈值: {threshold}")
-    print(f"最小场景长度: {min_scene_len} 帧")
+    print(f"Starting video analysis: {video_path}")
+    print(f"Detection threshold: {threshold}")
+    print(f"Minimum scene length: {min_scene_len} frame(s)")
     
-    # 执行场景检测
+    # Run scene detection
     scene_manager.detect_scenes(frame_source=video_manager, show_progress=show_progress)
     
-    # 获取检测到的场景列表
+    # Get the detected scene list
     scene_list = scene_manager.get_scene_list(base_timecode)
     
-    print(f"\n检测到 {len(scene_list)} 个场景")
+    print(f"\nDetected {len(scene_list)} scene(s)")
     
     if len(scene_list) == 0:
-        print("未检测到场景切换，将按最大时长进行均匀切割")
-        # 用 ffprobe 获取视频总时长
+        print("No scene changes detected; splitting uniformly by maximum clip duration")
+        # Use ffprobe to get the total video duration
         probe_result = subprocess.run(
             [
                 'ffprobe', '-v', 'error',
@@ -156,7 +156,7 @@ def split_video_by_scenes(
         try:
             total_duration = float(probe_result.stdout.strip())
         except ValueError:
-            print("无法获取视频总时长，无法进行切割")
+            print("Unable to determine total video duration; cannot continue splitting")
             return
 
         clip_len = max_clip_duration if max_clip_duration > 0 else total_duration
@@ -168,13 +168,13 @@ def split_video_by_scenes(
                 final_clips.append((t, end))
             t = end
 
-        print(f"视频总时长: {total_duration:.2f}s，按 {clip_len} 秒切割为 {len(final_clips)} 个片段")
+        print(f"Total video duration: {total_duration:.2f}s, split into {len(final_clips)} segment(s) with clip length {clip_len} seconds")
 
         if len(final_clips) == 0:
-            print(f"所有片段均小于 {min_clip_duration} 秒，无有效片段")
+            print(f"All segments are shorter than {min_clip_duration} seconds; no valid clips")
             return
     else:
-        # 过滤掉时长小于 min_clip_duration 的场景
+        # Filter out scenes shorter than min_clip_duration
         if min_clip_duration > 0:
             filtered_scene_list = []
             for scene in scene_list:
@@ -186,17 +186,17 @@ def split_video_by_scenes(
             
             filtered_count = len(scene_list) - len(filtered_scene_list)
             if filtered_count > 0:
-                print(f"过滤掉 {filtered_count} 个时长小于 {min_clip_duration} 秒的片段")
+                print(f"Filtered out {filtered_count} clip(s) shorter than {min_clip_duration} seconds")
             
             scene_list = filtered_scene_list
             
             if len(scene_list) == 0:
-                print(f"所有场景都小于 {min_clip_duration} 秒，无有效片段")
+                print(f"All scenes are shorter than {min_clip_duration} seconds; no valid clips")
                 return
         
-        print(f"有效场景数: {len(scene_list)}")
+        print(f"Valid scenes: {len(scene_list)}")
         
-        # 将超过 max_clip_duration 的场景分割成多个片段
+        # Split scenes that exceed max_clip_duration into multiple clips
         if max_clip_duration > 0:
             split_scenes = []
             discarded_count = 0
@@ -206,14 +206,14 @@ def split_video_by_scenes(
                 duration = end_time - start_time
                 
                 if duration > max_clip_duration:
-                    # 需要分割成多个片段
+                    # Split into multiple sub-clips
                     num_splits = int(duration / max_clip_duration) + (1 if duration % max_clip_duration > 0 else 0)
                     for j in range(num_splits):
                         sub_start = start_time + j * max_clip_duration
                         sub_end = min(start_time + (j + 1) * max_clip_duration, end_time)
                         sub_duration = sub_end - sub_start
                         
-                        # 检查分割后的片段时长是否满足最小时长要求
+                        # Check whether the sub-clip meets the minimum duration requirement
                         if sub_duration >= min_clip_duration:
                             split_scenes.append((sub_start, sub_end))
                         else:
@@ -223,20 +223,20 @@ def split_video_by_scenes(
             
             split_count = len(split_scenes) - len(scene_list)
             if split_count > 0:
-                print(f"将超过 {max_clip_duration} 秒的场景进一步分割")
+                print(f"Further split scenes longer than {max_clip_duration} seconds")
             if discarded_count > 0:
-                print(f"丢弃 {discarded_count} 个小于 {min_clip_duration} 秒的尾部片段")
+                print(f"Discarded {discarded_count} trailing segment(s) shorter than {min_clip_duration} seconds")
             
-            # 使用分割后的场景列表（转换为元组格式）
+            # Use the split scene list in tuple form
             final_clips = split_scenes
         else:
-            # 如果不限制最大时长，使用原始场景列表
+            # If no max duration is enforced, use the original scenes
             final_clips = [(scene[0].get_seconds(), scene[1].get_seconds()) for scene in scene_list]
     
-    print(f"最终片段数: {len(final_clips)}")
+    print(f"Final clip count: {len(final_clips)}")
     
-    # 打印场景信息
-    print("\n片段时间戳:")
+    # Print clip timestamps
+    print("\nClip timestamps:")
     for i, clip in enumerate(final_clips):
         if isinstance(clip, tuple):
             start_time, end_time = clip
@@ -244,29 +244,29 @@ def split_video_by_scenes(
             start_time = clip[0].get_seconds()
             end_time = clip[1].get_seconds()
         duration = end_time - start_time
-        print(f"  片段 {i+1:03d}: {start_time:.2f}s -> {end_time:.2f}s (时长: {duration:.2f}s)")
+        print(f"  Clip {i+1:03d}: {start_time:.2f}s -> {end_time:.2f}s (duration: {duration:.2f}s)")
     
-    # 使用多线程并行切割视频（避免帧重叠）
-    print(f"\n开始切割视频到目录: {clips_output_dir}")
+    # Split the video with multithreading
+    print(f"\nStarting video splitting into directory: {clips_output_dir}")
     
-    # 获取视频帧率
+    # Get the video frame rate
     fps = video_manager.get_framerate()
     if fps:
-        print(f"视频帧率: {fps:.2f} fps")
+        print(f"Video frame rate: {fps:.2f} fps")
     else:
-        print("视频帧率: 未知（将不强制 CFR 输出）")
+        print("Video frame rate: unknown (CFR output will not be forced)")
     
-    # 设置帧偏移量，用于避免相邻 clip 之间的帧重叠
-    # 对于第一个 clip 之外的所有 clip，起始时间会增加这个偏移量
-    frame_offset = 0  # 4 帧偏移
+    # Set a frame offset to avoid overlapping frames between adjacent clips
+    # For all clips except the first, the start time is shifted by this offset
+    frame_offset = 0  # 4-frame offset
     if fps and fps > 0:
-        time_offset = frame_offset / fps  # 转换为秒
-        print(f"时间偏移量: {frame_offset} 帧 ({time_offset:.3f} 秒)")
+        time_offset = frame_offset / fps  # Convert to seconds
+        print(f"Time offset: {frame_offset} frame(s) ({time_offset:.3f} seconds)")
     else:
         time_offset = 0.0
-        print("时间偏移量: 0 帧 (0.000 秒)")
+        print("Time offset: 0 frames (0.000 seconds)")
     
-    # 准备所有切割任务
+    # Prepare all split tasks
     tasks = []
     for i, clip in enumerate(final_clips):
         if isinstance(clip, tuple):
@@ -275,11 +275,11 @@ def split_video_by_scenes(
             start_time = clip[0].get_seconds()
             end_time = clip[1].get_seconds()
         
-        # 对于非第一个 clip，给起始时间添加偏移量以避免重叠帧
+        # Shift the start time for non-first clips to avoid overlapping frames
         if i > 0:
             start_time += time_offset
         
-        # 生成输出文件名
+        # Build the output filename
         output_filename = f"{video_name}_scene_{i+1:03d}.{output_format}"
         output_path = os.path.join(clips_output_dir, output_filename)
         
@@ -293,16 +293,16 @@ def split_video_by_scenes(
             'output_fps': fps
         })
     
-    # 使用多线程并行执行切割任务
-    # 线程数设置为 CPU 核心数的 2 倍（因为主要是 I/O 操作）
+    # Execute split tasks with multithreading
+    # The thread count is tuned for I/O-heavy work
     max_workers = 8
-    print(f"\n准备使用最多 {max_workers} 个线程进行切割...")
+    print(f"\nPreparing to split with up to {max_workers} threads...")
     failed_scenes = []
     
-    print(f"使用 {max_workers} 个线程并行处理...")
+    print(f"Processing in parallel with {max_workers} threads...")
     
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        # 提交所有任务
+        # Submit all tasks
         future_to_task = {}
         for task in tasks:
             future = executor.submit(
@@ -317,7 +317,7 @@ def split_video_by_scenes(
             )
             future_to_task[future] = task
         
-        # 收集结果
+        # Collect results
         completed = 0
         for future in as_completed(future_to_task):
             scene_idx, success, error_msg = future.result()
@@ -325,21 +325,21 @@ def split_video_by_scenes(
             
             if show_progress:
                 task = future_to_task[future]
-                print(f"  [{completed}/{len(final_clips)}] 片段 {scene_idx}: {task['start_time']:.2f}s - {task['end_time']:.2f}s {'✓' if success else '✗'}")
+                print(f"  [{completed}/{len(final_clips)}] Clip {scene_idx}: {task['start_time']:.2f}s - {task['end_time']:.2f}s {'✓' if success else '✗'}")
             
             if not success:
                 failed_scenes.append((scene_idx, error_msg))
     
-    # 显示失败的场景
+    # Show failed scenes
     if failed_scenes:
-        print(f"\n⚠️  警告: {len(failed_scenes)} 个片段切割失败:")
+        print(f"\n⚠ Warning: failed to split {len(failed_scenes)} clip(s):")
         for scene_idx, error_msg in failed_scenes:
-            print(f"  片段 {scene_idx}: {error_msg[:100]}")
+            print(f"  Clip {scene_idx}: {error_msg[:100]}")
     
-    print(f"\n✓ 完成！共生成 {len(final_clips) - len(failed_scenes)}/{len(final_clips)} 个视频片段")
-    print(f"输出目录: {clips_output_dir}")
+    print(f"\n✓ Done! Generated {len(final_clips) - len(failed_scenes)}/{len(final_clips)} video clip(s)")
+    print(f"Output directory: {clips_output_dir}")
     
-    # 生成 JSON 文件
+    # Generate the JSON file
     clips_info = []
     for i, clip in enumerate(final_clips):
         if isinstance(clip, tuple):
@@ -348,15 +348,15 @@ def split_video_by_scenes(
             start_time = clip[0].get_seconds()
             end_time = clip[1].get_seconds()
         
-        # 应用时间偏移量（与切割时保持一致）
+        # Apply the same time offset used during splitting
         if i > 0:
             start_time += time_offset
         
-        # 生成 clip 文件名（与 split_video_ffmpeg 的命名规则一致）
+        # Build the clip filename using the same naming convention
         clip_filename = f"{video_name}_scene_{i+1:03d}.{output_format}"
         clip_path = os.path.join(clips_output_dir, clip_filename)
         
-        # 转换为绝对路径
+        # Convert to an absolute path
         clip_abs_path = os.path.abspath(clip_path)
         
         clips_info.append({
@@ -368,7 +368,7 @@ def split_video_by_scenes(
             "concept1": False
         })
     
-    # 创建完整的输出数据
+    # Build the full output payload
     output_data = {
         "source_video": os.path.abspath(video_path),
         "concept1_path": "",
@@ -376,52 +376,52 @@ def split_video_by_scenes(
         "clips": clips_info
     }
     
-    # 保存 JSON 文件
+    # Save the JSON file
     json_output_path = os.path.join(clips_output_dir, f"{video_name}_clips_info.json")
     with open(json_output_path, "w", encoding="utf-8") as f:
         json.dump(output_data, f, ensure_ascii=False, indent=2)
     
-    print(f"✓ JSON 信息文件已保存: {json_output_path}")
+    print(f"✓ JSON metadata file saved: {json_output_path}")
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="使用 PySceneDetect 将视频按场景分割成多个 clip"
+        description="Use PySceneDetect to split a video into multiple clips by scene"
     )
     
     parser.add_argument(
         "--video_path",
         type=str,
         default="/mnt/shared-storage-user/mineru2-shared/zqt/zqt2/PSVBench/data/video-level/videos/jianshen1.mp4",
-        help="输入视频路径"
+        help="Input video path"
     )
     
     parser.add_argument(
         "--output_dir",
         type=str,
         default="/mnt/shared-storage-user/mineru2-shared/zqt/zqt2/PSVBench/0121/output_clips",
-        help="输出目录，默认: ./output_clips"
+        help="Output directory, default: ./output_clips"
     )
     
     parser.add_argument(
         "--threshold",
         type=float,
         default=27.0,
-        help="场景检测阈值 (0-255)，值越小越敏感，默认: 27.0"
+        help="Scene detection threshold (0-255); lower values are more sensitive, default: 27.0"
     )
     
     parser.add_argument(
         "--min_scene_len",
         type=int,
         default=15,
-        help="最小场景长度（帧数），默认: 15"
+        help="Minimum scene length in frames, default: 15"
     )
     
     parser.add_argument(
         "--min_clip_duration",
         type=float,
         default=1.0,
-        help="最小 clip 时长（秒），过滤掉小于该时长的片段，默认: 3.0"
+        help="Minimum clip duration in seconds; shorter clips are filtered out, default: 3.0"
     )
     
     parser.add_argument(
@@ -429,12 +429,12 @@ def main():
         type=float,
         default=8.0,
         # default=10.0,
-        help="最大 clip 时长（秒），超过该时长的场景会被分割成多个片段，默认: 10.0"
+        help="Maximum clip duration in seconds; longer scenes are split into multiple clips, default: 10.0"
     )
     
     args = parser.parse_args()
     
-    # 执行视频分割
+    # Run scene-based splitting
     split_video_by_scenes(
         video_path=args.video_path,
         output_dir=args.output_dir,

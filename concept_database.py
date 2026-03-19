@@ -9,66 +9,66 @@ from utils import extract_video_frame
 
 class ConceptDatabase:
     """
-    简单的概念数据库，用于存储和查询视频中定义的概念
-    
-    每个概念包含：
-    - concept_name: 概念名称
-    - description: 模型生成的简短描述
-    - frame_path: 当前帧图像的存储路径（自动从视频提取）
-    - timestamp: 时间戳
-    - video_path: 视频路径
-    
-    特性：
-    - 自动从视频中提取指定时间戳的帧
-    - 使用 concept_name 命名保存的帧图像
-    - 支持增加和查询功能
+    A simple concept database for storing and querying concepts defined in videos.
+
+    Each concept includes:
+    - concept_name: concept name
+    - description: short model-generated description
+    - frame_path: stored path to the extracted frame image
+    - timestamp: timestamp
+    - video_path: video path
+
+    Features:
+    - Automatically extracts frames from videos at specified timestamps
+    - Saves frame images using concept_name as the filename
+    - Supports insertion and query operations
     """
     
     def __init__(self, db_path: str = "/mnt/shared-storage-user/mineru2-shared/zqt/zqt2/PSVBench/0121/.cache/concept_db.json", frame_dir: str = "/mnt/shared-storage-user/mineru2-shared/zqt/zqt2/PSVBench/0121/.cache"):
         """
-        初始化数据库
+        Initialize the database.
         
         Args:
-            db_path: 数据库JSON文件路径（默认：/mnt/shared-storage-user/mineru2-shared/zqt/zqt2/PSVBench/0117/.cache/concept_db.json）
-            frame_dir: 存储概念帧图像的目录（默认：/mnt/shared-storage-user/mineru2-shared/zqt/zqt2/PSVBench/0117/.cache）
+            db_path: Path to the JSON database file
+            frame_dir: Directory used to store extracted concept frames
         """
         self.db_path = Path(db_path)
         self.frame_dir = Path(frame_dir)
         
-        # 创建帧存储目录
+        # Create the frame storage directory
         self.frame_dir.mkdir(exist_ok=True)
         
-        # 加载或初始化数据库
+        # Load or initialize the database
         self.data = self._load_db()
     
     def _load_db(self) -> Dict:
-        """加载数据库文件"""
+        """Load the database file."""
         if self.db_path.exists():
             try:
                 with open(self.db_path, 'r', encoding='utf-8') as f:
                     return json.load(f)
             except json.JSONDecodeError:
-                print(f"警告: 数据库文件 {self.db_path} 格式错误，将创建新数据库")
+                print(f"Warning: database file {self.db_path} is malformed; creating a new database")
                 return {"concepts": []}
         else:
             return {"concepts": []}
     
     def _save_db(self):
-        """保存数据库到文件"""
+        """Save the database to disk."""
         with open(self.db_path, 'w', encoding='utf-8') as f:
             json.dump(self.data, f, ensure_ascii=False, indent=2)
     
     def _extract_frame(self, video_path: str, timestamp: str, output_path: str) -> bool:
         """
-        从视频中提取指定时间戳的帧
+        Extract a frame from the video at the specified timestamp.
         
         Args:
-            video_path: 视频文件路径
-            timestamp: 时间戳 (格式: HH:MM:SS)
-            output_path: 输出图像路径
+            video_path: Video file path
+            timestamp: Timestamp in HH:MM:SS format
+            output_path: Output image path
             
         Returns:
-            bool: 提取成功返回True，否则返回False
+            bool: True if extraction succeeded, otherwise False
         """
         return extract_video_frame(
             source_video=video_path,
@@ -79,16 +79,16 @@ class ConceptDatabase:
 
     def _extract_clip(self, video_path: str, start_time: str, end_time: str, output_path: str) -> bool:
         """
-        从视频中提取指定时间段的视频片段
+        Extract a video clip from the specified time range.
         
         Args:
-            video_path: 视频文件路径
-            start_time: 开始时间戳 (格式: HH:MM:SS)
-            end_time: 结束时间戳 (格式: HH:MM:SS)
-            output_path: 输出视频路径
+            video_path: Video file path
+            start_time: Start timestamp in HH:MM:SS format
+            end_time: End timestamp in HH:MM:SS format
+            output_path: Output video path
             
         Returns:
-            bool: 提取成功返回True，否则返回False
+            bool: True if extraction succeeded, otherwise False
         """
         try:
             cmd = [
@@ -98,7 +98,7 @@ class ConceptDatabase:
                 '-to', end_time,
                 '-c:v', 'libx264',
                 '-c:a', 'aac',
-                '-y',  # 覆盖已存在的文件
+                '-y',  # Overwrite existing files
                 output_path
             ]
             
@@ -109,18 +109,18 @@ class ConceptDatabase:
             )
             
             if os.path.exists(output_path):
-                print(f"✓ 成功提取片段: {output_path}")
+                print(f"✓ Successfully extracted clip: {output_path}")
                 return True
             else:
-                print(f"✗ 提取片段失败: 输出文件不存在")
+                print("✗ Failed to extract clip: output file does not exist")
                 return False
                 
         except subprocess.CalledProcessError as e:
-            print(f"✗ ffmpeg 提取片段失败: {e}")
+            print(f"✗ ffmpeg failed to extract clip: {e}")
             print(f"stderr: {e.stderr.decode()}")
             return False
         except Exception as e:
-            print(f"✗ 提取片段异常: {e}")
+            print(f"✗ Unexpected error while extracting clip: {e}")
             return False
     
     def add_concept(
@@ -134,54 +134,54 @@ class ConceptDatabase:
         additional_info: Optional[Dict] = None
     ) -> bool:
         """
-        添加一个新概念到数据库
-        
-        支持两种模式：
-        - 帧模式（原有）：传入 timestamp，从视频中提取单帧图像
-        - 片段模式（新增）：传入 start_time + end_time，从视频中提取视频片段
+        Add a new concept to the database.
+
+        Supports two modes:
+        - Frame mode: provide timestamp to extract a single frame
+        - Clip mode: provide start_time + end_time to extract a video clip
         
         Args:
-            concept_name: 概念名称
-            description: 模型生成的描述
-            video_path: 视频路径
-            timestamp: 时间戳 (格式: HH:MM:SS)，帧模式时使用
-            start_time: 片段开始时间 (格式: HH:MM:SS)，片段模式时使用
-            end_time: 片段结束时间 (格式: HH:MM:SS)，片段模式时使用
-            additional_info: 额外的信息（可选）
+            concept_name: Concept name
+            description: Model-generated description
+            video_path: Video path
+            timestamp: Timestamp in HH:MM:SS format for frame mode
+            start_time: Start timestamp in HH:MM:SS format for clip mode
+            end_time: End timestamp in HH:MM:SS format for clip mode
+            additional_info: Optional extra information
             
         Returns:
-            bool: 添加成功返回True，否则返回False
+            bool: True if the concept was added successfully, otherwise False
         """
         try:
             if start_time and end_time:
-                # 片段模式：提取视频片段
+                # Clip mode: extract a video clip
                 clip_filename = f"{concept_name}.mp4"
                 target_path = self.frame_dir / clip_filename
                 
                 if not self._extract_clip(video_path, start_time, end_time, str(target_path)):
-                    print(f"✗ 无法从视频提取片段，跳过添加概念 {concept_name}")
+                    print(f"✗ Unable to extract clip from video; skipping concept {concept_name}")
                     return False
                 
-                # 创建概念记录（concept_type = "clip"）
+                # Create a concept record (concept_type = "clip")
                 concept_entry = {
                     "concept_name": concept_name,
                     "description": description,
-                    "frame_path": str(target_path),  # 保持向后兼容，存储片段路径
+                    "frame_path": str(target_path),  # Preserve backward compatibility by storing the clip path here
                     "concept_type": "clip",
                     "start_time": start_time,
                     "end_time": end_time,
                     "video_path": video_path,
                 }
             else:
-                # 帧模式（原有逻辑）：提取单帧图像
+                # Frame mode: extract a single frame
                 frame_filename = f"{concept_name}.jpg"
                 target_frame_path = self.frame_dir / frame_filename
                 
                 if not self._extract_frame(video_path, timestamp, str(target_frame_path)):
-                    print(f"✗ 无法从视频提取帧，跳过添加概念 {concept_name}")
+                    print(f"✗ Unable to extract frame from video; skipping concept {concept_name}")
                     return False
                 
-                # 创建概念记录（concept_type = "frame"）
+                # Create a concept record (concept_type = "frame")
                 concept_entry = {
                     "concept_name": concept_name,
                     "description": description,
@@ -191,32 +191,32 @@ class ConceptDatabase:
                     "video_path": video_path,
                 }
             
-            # 添加额外信息
+            # Add extra information
             if additional_info:
                 concept_entry.update(additional_info)
             
-            # 添加到数据库
+            # Append to the database
             self.data["concepts"].append(concept_entry)
             
-            # 保存到文件
+            # Save to disk
             self._save_db()
             
-            print(f"✓ 成功添加概念: {concept_name} (类型: {concept_entry['concept_type']})")
+            print(f"✓ Successfully added concept: {concept_name} (type: {concept_entry['concept_type']})")
             return True
             
         except Exception as e:
-            print(f"✗ 添加概念 {concept_name} 失败: {e}")
+            print(f"✗ Failed to add concept {concept_name}: {e}")
             return False
     
     def query_by_name(self, concept_name: str) -> Optional[Dict]:
         """
-        根据概念名称查询
+        Query a concept by name.
         
         Args:
-            concept_name: 概念名称
+            concept_name: Concept name
             
         Returns:
-            Dict: 概念信息，如果不存在返回None
+            Dict: Concept information, or None if not found
         """
         for concept in self.data["concepts"]:
             if concept["concept_name"] == concept_name:
@@ -224,22 +224,22 @@ class ConceptDatabase:
         return None
     
     def clear_database(self):
-        """清空数据库中的所有概念"""
+        """Clear all concepts from the database."""
         self.data = {"concepts": []}
         self._save_db()
-        print("✓ 数据库已清空")
+        print("✓ Database cleared")
     
     def extract_concept_names(self, text: str) -> List[str]:
         """
-        从文本中提取所有被 {} 包围的概念名称
+        Extract all concept names enclosed in {} from a text string.
         
         Args:
-            text: 输入文本
+            text: Input text
             
         Returns:
-            List[str]: 提取的概念名称列表
+            List[str]: Extracted concept names
         """
-        # 使用正则表达式匹配 {concept_name} 格式
+        # Match the {concept_name} pattern with a regular expression
         pattern = r'\{([^}]+)\}'
         concepts = re.findall(pattern, text)
         return concepts
@@ -250,37 +250,37 @@ class ConceptDatabase:
         clear_before_add: bool = True
     ) -> int:
         """
-        从 annotation 文件中批量添加概念
-        
-        该方法会：
-        1. 读取 annotation 文件
-        2. 遍历所有 concept definition 类型的条目
-        3. 提取概念名称并添加到数据库
-        4. 跳过重复的概念
+        Add concepts in batch from an annotation file.
+
+        This method:
+        1. Reads the annotation file
+        2. Iterates over all entries of type "concept definition"
+        3. Extracts concept names and adds them to the database
+        4. Skips duplicate concepts
         
         Args:
-            annotation_file: annotation 文件路径
-            clear_before_add: 是否在添加前清空数据库（默认：True）
+            annotation_file: Path to the annotation file
+            clear_before_add: Whether to clear the database before insertion
             
         Returns:
-            int: 成功添加的概念数量
+            int: Number of concepts added successfully
         """
-        # 1. 清空数据库（如果需要）
+        # 1. Clear the database if requested
         if clear_before_add:
-            print("\n清空数据库...")
+            print("\nClearing database...")
             self.clear_database()
         
         annotation_file_path = Path(annotation_file).resolve()
         project_root = Path(__file__).resolve().parent
 
-        # 2. 读取 annotation 文件
-        print(f"\n读取标注文件: {annotation_file}")
+        # 2. Load the annotation file
+        print(f"\nLoading annotation file: {annotation_file}")
         with open(annotation_file_path, 'r', encoding='utf-8') as f:
             annotations = json.load(f)
-        print(f"✓ 成功加载标注文件")
+        print("✓ Annotation file loaded successfully")
         
-        # 3. 提取并添加概念定义
-        print("\n提取并添加概念定义...")
+        # 3. Extract and add concept definitions
+        print("\nExtracting and adding concept definitions...")
         concept_count = 0
         skipped_count = 0
         error_count = 0
@@ -288,7 +288,7 @@ class ConceptDatabase:
         for video_item in annotations:
             video_path_raw = video_item.get('video_path')
             if not video_path_raw:
-                raise ValueError("annotation 中存在缺失 video_path 的条目")
+                raise ValueError("Found an annotation entry with a missing video_path")
 
             video_path_obj = Path(video_path_raw)
             if not video_path_obj.is_absolute():
@@ -297,15 +297,15 @@ class ConceptDatabase:
                 video_path_obj = video_path_obj.resolve()
 
             if not video_path_obj.exists():
-                raise FileNotFoundError(f"视频文件不存在: {video_path_obj}")
+                raise FileNotFoundError(f"Video file does not exist: {video_path_obj}")
 
             video_path = str(video_path_obj)
             timestamps = video_item.get('timestamps', [])
             
-            print(f"\n处理视频: {video_path}")
+            print(f"\nProcessing video: {video_path}")
             
             for qa_item in timestamps:
-                # 只处理 concept definition 类型
+                # Only process entries of type "concept definition"
                 if qa_item.get('qa_type') != "concept definition":
                     continue
                 
@@ -314,31 +314,31 @@ class ConceptDatabase:
                 start_time = qa_item.get('start_time', '')
                 end_time = qa_item.get('end_time', '')
                 
-                # 提取概念名称
+                # Extract concept names
                 concept_names = self.extract_concept_names(question)
                 
                 if not concept_names:
-                    print(f"  ⚠ 警告: 在问题中未找到概念名称: {question}")
+                    print(f"  ⚠ Warning: no concept names found in question: {question}")
                     continue
                 
-                # 判断模式：优先使用 start_time/end_time（片段模式），否则用 time（帧模式）
+                # Decide the mode: prefer start_time/end_time (clip mode), otherwise use time (frame mode)
                 use_clip_mode = bool(start_time and end_time)
                 if use_clip_mode:
-                    print(f"  [片段模式] 时间范围: {start_time} -> {end_time}")
+                    print(f"  [Clip mode] Time range: {start_time} -> {end_time}")
                 else:
-                    print(f"  [帧模式] 时间戳: {time}")
+                    print(f"  [Frame mode] Timestamp: {time}")
                 
-                # 添加每个概念
+                # Add each concept
                 for concept_name in concept_names:
-                    # 检查概念是否已存在
+                    # Check whether the concept already exists
                     existing_concept = self.query_by_name(concept_name)
                     if existing_concept:
-                        print(f"  ⊗ 跳过重复概念: {concept_name} (已存在)")
+                        print(f"  ⊗ Skipping duplicate concept: {concept_name} (already exists)")
                         skipped_count += 1
                         continue
                     
-                    print(f"\n  添加概念: {concept_name}")
-                    print(f"    问题: {question[:80]}...")
+                    print(f"\n  Adding concept: {concept_name}")
+                    print(f"    Question: {question[:80]}...")
                     
                     success = self.add_concept(
                         concept_name=concept_name,
@@ -354,68 +354,68 @@ class ConceptDatabase:
                     else:
                         error_count += 1
         
-        # 4. 显示统计信息
+        # 4. Show summary statistics
         print("\n" + "-" * 80)
-        print(f"✓ 处理完成！")
-        print(f"  成功添加: {concept_count} 个概念")
-        print(f"  跳过重复: {skipped_count} 个概念")
-        print(f"  添加失败: {error_count} 个概念")
-        assert error_count==0, "添加概念时发生错误，请检查日志"
+        print("✓ Processing complete!")
+        print(f"  Added successfully: {concept_count} concept(s)")
+        print(f"  Duplicates skipped: {skipped_count} concept(s)")
+        print(f"  Failed to add: {error_count} concept(s)")
+        assert error_count==0, "Errors occurred while adding concepts; please check the logs"
         print("-" * 80)
         
         return concept_count
 
 
-# 使用示例
+# Example usage
 if __name__ == "__main__":
     print("=" * 80)
-    print("开始处理概念定义")
+    print("Starting concept-definition processing")
     print("=" * 80)
     
-    # 配置路径
+    # Configure paths
     base_cache_dir = Path("/mnt/shared-storage-user/mineru2-shared/zqt/zqt2/PSVBench/0121/.cache")
     annotation_file = Path("/mnt/shared-storage-user/mineru2-shared/zqt/zqt2/PSVBench/data/annotations/apartment5.json")
     
-    # 检查文件是否存在
+    # Check whether the file exists
     if not annotation_file.exists():
-        print(f"✗ 文件不存在: {annotation_file}")
+        print(f"✗ File does not exist: {annotation_file}")
         exit(1)
     
-    annotation_name = annotation_file.stem  # 获取不带扩展名的文件名
+    annotation_name = annotation_file.stem  # Filename without extension
     
-    print(f"\n处理 annotation: {annotation_file.name}")
+    print(f"\nProcessing annotation: {annotation_file.name}")
     print("=" * 80)
     
-    # 为当前 annotation 创建专属的子文件夹
+    # Create a dedicated subdirectory for this annotation
     annotation_cache_dir = base_cache_dir / annotation_name
     annotation_cache_dir.mkdir(parents=True, exist_ok=True)
     
-    # 设置数据库路径和帧存储路径
+    # Set the database path and frame storage directory
     db_path = annotation_cache_dir / "concept_db.json"
     frame_dir = annotation_cache_dir
     
-    print(f"\n数据库路径: {db_path}")
-    print(f"帧存储路径: {frame_dir}")
+    print(f"\nDatabase path: {db_path}")
+    print(f"Frame storage path: {frame_dir}")
     
-    # 创建数据库实例
+    # Create the database instance
     db = ConceptDatabase(db_path=str(db_path), frame_dir=str(frame_dir))
     
-    # 从 annotation 文件批量添加概念
+    # Batch-add concepts from the annotation file
     concept_count = db.add_concepts_from_annotation_file(
         annotation_file=str(annotation_file),
         clear_before_add=True
     )
     
-    # 显示当前 annotation 的所有概念
+    # Show all concepts stored for the current annotation
     if concept_count > 0:
-        print(f"\n{annotation_name} 数据库中的所有概念:")
+        print(f"\nAll concepts in the {annotation_name} database:")
         print("-" * 80)
         for i, concept in enumerate(db.data['concepts'], 1):
             print(f"{i}. {concept['concept_name']}")
-            print(f"   时间戳: {concept['timestamp']}")
-            print(f"   帧路径: {concept['frame_path']}")
+            print(f"   Timestamp: {concept['timestamp']}")
+            print(f"   Frame path: {concept['frame_path']}")
             print()
     
     print("\n" + "=" * 80)
-    print(f"✓ 处理完成！共添加 {concept_count} 个概念")
+    print(f"✓ Done! Added {concept_count} concept(s) in total")
     print("=" * 80)

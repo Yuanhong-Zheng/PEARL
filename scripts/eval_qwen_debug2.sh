@@ -17,17 +17,17 @@ NUM_GPUS=${1:-8}
 # Project root (PEARL)
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-ANNOTATION_DIR="${PROJECT_ROOT}/data/frame-level/annotations_filtered"
+ANNOTATION_DIR="${PROJECT_ROOT}/data/frame-level/annotations"
 CLIPS_BASE_DIR="${PROJECT_ROOT}/data/frame-level/output_clips"
 CACHE_DIR="${PROJECT_ROOT}/.cache"
-OUTPUT_DIR="${PROJECT_ROOT}/output_results/test/qwen3vl_k4_n1_fps1"
+OUTPUT_DIR="${PROJECT_ROOT}/output_results/test/qwen3vl_k4_n1_pre0_fps1_debug2"
 PYTHON_SCRIPT="${PROJECT_ROOT}/video_qa_inference.py"
 
 VLLM_BASE_PORT=22003
 EMBEDDING_BASE_PORT=5000
 
 # Toggle: whether to skip existing output files (true/false)
-SKIP_EXISTING=true
+SKIP_EXISTING=false
 # ====================================
 
 echo "========================================"

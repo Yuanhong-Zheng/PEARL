@@ -1,6 +1,6 @@
 """
-通用工具函数模块
-包含视频处理、文本处理等常用功能
+Common utility functions.
+Includes helpers for video processing, text processing, and related tasks.
 """
 import os
 import re
@@ -10,16 +10,16 @@ from typing import Dict, List, Sequence, Union
 
 def time_to_seconds(time_str: str) -> float:
     """
-    将时间字符串转换为秒数
+    Convert a time string to seconds.
     
     Args:
-        time_str: 时间字符串，支持以下格式：
-                 - "HH:MM:SS" (如 "01:23:45")
-                 - "MM:SS" (如 "23:45")
-                 - "SS" (如 "45")
+        time_str: Time string in one of the following formats:
+                 - "HH:MM:SS" (for example, "01:23:45")
+                 - "MM:SS" (for example, "23:45")
+                 - "SS" (for example, "45")
         
     Returns:
-        秒数（float）
+        Number of seconds as a float
         
     Examples:
         >>> time_to_seconds("01:23:45")
@@ -32,33 +32,33 @@ def time_to_seconds(time_str: str) -> float:
     parts = time_str.split(':')
     
     if len(parts) == 3:
-        # HH:MM:SS 格式
+        # HH:MM:SS format
         hours = int(parts[0])
         minutes = int(parts[1])
         seconds = float(parts[2])
         return hours * 3600 + minutes * 60 + seconds
     elif len(parts) == 2:
-        # MM:SS 格式
+        # MM:SS format
         minutes = int(parts[0])
         seconds = float(parts[1])
         return minutes * 60 + seconds
     elif len(parts) == 1:
-        # SS 格式
+        # SS format
         return float(parts[0])
     else:
-        raise ValueError(f"无效的时间格式: {time_str}，支持的格式: HH:MM:SS, MM:SS, SS")
+        raise ValueError(f"Invalid time format: {time_str}. Supported formats: HH:MM:SS, MM:SS, SS")
 
 
 def seconds_to_time(seconds: float, format: str = "HH:MM:SS") -> str:
     """
-    将秒数转换为时间字符串
+    Convert seconds to a time string.
     
     Args:
-        seconds: 秒数
-        format: 输出格式，可选 "HH:MM:SS" 或 "MM:SS"
+        seconds: Number of seconds
+        format: Output format, either "HH:MM:SS" or "MM:SS"
         
     Returns:
-        时间字符串
+        Formatted time string
         
     Examples:
         >>> seconds_to_time(5025.5)
@@ -76,28 +76,28 @@ def seconds_to_time(seconds: float, format: str = "HH:MM:SS") -> str:
         total_minutes = int(seconds // 60)
         return f"{total_minutes:02d}:{secs:02d}"
     else:
-        raise ValueError(f"不支持的格式: {format}")
+        raise ValueError(f"Unsupported format: {format}")
 
 
 def extract_concepts(text: str) -> List[str]:
     """
-    从文本中提取概念（用 {} 包围的内容）
+    Extract concepts from text, where concepts are enclosed in {}.
     
     Args:
-        text: 输入文本
+        text: Input text
         
     Returns:
-        概念列表（去重且保持顺序）
+        List of concepts, deduplicated while preserving order
         
     Examples:
-        >>> extract_concepts("这是 {概念1} 和 {概念2}，还有 {概念1}")
-        ['概念1', '概念2']
+        >>> extract_concepts("This is {Concept1} and {Concept2}, plus {Concept1}")
+        ['Concept1', 'Concept2']
     """
-    # 使用正则表达式提取 {concept_name} 格式的内容
+    # Use a regex to extract content in {concept_name} format
     pattern = r'\{([^}]+)\}'
     concepts = re.findall(pattern, text)
     
-    # 去重，同时保持原有顺序
+    # Deduplicate while preserving order
     seen = set()
     unique_concepts = []
     for concept in concepts:
@@ -118,41 +118,40 @@ def extract_video_clip(
     verbose: bool = False
 ) -> bool:
     """
-    使用 ffmpeg 从源视频中提取指定时间段的片段
+    Use ffmpeg to extract a clip from the source video.
     
     Args:
-        source_video: 源视频路径
-        start_time: 开始时间（秒）
-        end_time: 结束时间（秒）
-        output_path: 输出路径
-        video_codec: 视频编码器，默认 "libx264"
-        audio_codec: 音频编码器，默认 "aac"
-        verbose: 是否显示详细输出
+        source_video: Source video path
+        start_time: Start time in seconds
+        end_time: End time in seconds
+        output_path: Output path
+        video_codec: Video codec, default "libx264"
+        audio_codec: Audio codec, default "aac"
+        verbose: Whether to print verbose output
         
     Returns:
-        是否成功
+        Whether extraction succeeded
         
     Examples:
         >>> extract_video_clip("input.mp4", 10.0, 20.0, "output.mp4")
         True
     """
     try:
-        # 构造 ffmpeg 命令
-        # 注意：-ss 放在 -i 之前可以实现快速 seek（Input Seeking）
-        # 这样无论 start_time 在视频的哪个位置，速度都很快
+        # Build the ffmpeg command
+        # Note: placing -ss before -i enables fast input seeking
         duration = end_time - start_time
         cmd = [
             'ffmpeg',
-            '-ss', str(start_time),  # Input Seeking：快速定位
+            '-ss', str(start_time),  # Input seeking for fast positioning
             '-i', source_video,
-            '-t', str(duration),     # 持续时间（而不是结束时间）
-            '-c:v', video_codec,     # 视频编码
-            '-c:a', audio_codec,     # 音频编码
-            '-y',                    # 覆盖输出文件
+            '-t', str(duration),     # Duration rather than end time
+            '-c:v', video_codec,     # Video codec
+            '-c:a', audio_codec,     # Audio codec
+            '-y',                    # Overwrite output file
             output_path
         ]
         
-        # 执行命令
+        # Execute the command
         result = subprocess.run(
             cmd,
             check=True,
@@ -160,26 +159,26 @@ def extract_video_clip(
             text=True
         )
         
-        # 检查输出文件是否存在
+        # Check whether the output file exists
         if os.path.exists(output_path):
             if verbose:
-                print(f"✓ 成功提取视频片段: {os.path.basename(output_path)}")
-                print(f"  时间范围: {start_time:.2f}s - {end_time:.2f}s")
-                print(f"  输出路径: {output_path}")
+                print(f"✓ Video clip extracted successfully: {os.path.basename(output_path)}")
+                print(f"  Time range: {start_time:.2f}s - {end_time:.2f}s")
+                print(f"  Output path: {output_path}")
             return True
         else:
             if verbose:
-                print(f"✗ 提取视频片段失败: 输出文件不存在")
+                print("✗ Failed to extract video clip: output file does not exist")
             return False
             
     except subprocess.CalledProcessError as e:
         if verbose:
-            print(f"✗ ffmpeg 提取视频片段失败: {e}")
+            print(f"✗ ffmpeg failed to extract the video clip: {e}")
             print(f"  stderr: {e.stderr}")
         return False
     except Exception as e:
         if verbose:
-            print(f"✗ 提取视频片段异常: {e}")
+            print(f"✗ Unexpected error while extracting video clip: {e}")
         return False
 
 
@@ -190,16 +189,16 @@ def extract_video_frame(
     verbose: bool = False
 ) -> bool:
     """
-    使用 ffmpeg 从源视频中提取指定时间点的一帧图像。
+    Use ffmpeg to extract a single frame from the source video.
 
     Args:
-        source_video: 源视频路径
-        timestamp: 时间点（秒或时间字符串）
-        output_path: 输出图像路径
-        verbose: 是否显示详细输出
+        source_video: Source video path
+        timestamp: Timestamp as seconds or a time string
+        output_path: Output image path
+        verbose: Whether to print verbose output
 
     Returns:
-        是否成功
+        Whether extraction succeeded
     """
     try:
         cmd = [
@@ -220,35 +219,35 @@ def extract_video_frame(
 
         if os.path.exists(output_path):
             if verbose:
-                print(f"✓ 成功提取帧: {output_path}")
+                print(f"✓ Frame extracted successfully: {output_path}")
             return True
 
         if verbose:
-            print("✗ 提取帧失败: 输出文件不存在")
+            print("✗ Failed to extract frame: output file does not exist")
         return False
     except subprocess.CalledProcessError as e:
         if verbose:
-            print(f"✗ ffmpeg 提取帧失败: {e}")
+            print(f"✗ ffmpeg failed to extract the frame: {e}")
             print(f"stderr: {e.stderr.decode()}")
         return False
     except Exception as e:
         if verbose:
-            print(f"✗ 提取帧异常: {e}")
+            print(f"✗ Unexpected error while extracting frame: {e}")
         return False
 
 
 def get_video_duration(video_path: str) -> float:
     """
-    获取视频时长
+    Get the duration of a video.
     
     Args:
-        video_path: 视频文件路径
+        video_path: Video file path
         
     Returns:
-        视频时长（秒）
+        Video duration in seconds
         
     Raises:
-        RuntimeError: 如果无法获取视频时长
+        RuntimeError: If the duration cannot be obtained
     """
     try:
         cmd = [
@@ -270,35 +269,35 @@ def get_video_duration(video_path: str) -> float:
         return duration
         
     except Exception as e:
-        raise RuntimeError(f"无法获取视频时长: {e}")
+        raise RuntimeError(f"Unable to determine video duration: {e}")
 
 
 def remove_concept_markers(text: str) -> str:
     """
-    从文本中移除概念标记（{} 包围的部分）
+    Remove concept markers enclosed in {} from text.
     
     Args:
-        text: 输入文本
+        text: Input text
         
     Returns:
-        移除概念标记后的文本
+        Text with concept markers removed
         
     Examples:
-        >>> remove_concept_markers("这是 {概念1} 和 {概念2} 的例子")
-        "这是  和  的例子"
+        >>> remove_concept_markers("This is an example with {Concept1} and {Concept2}")
+        "This is an example with  and "
     """
     return re.sub(r'\{[^}]+\}', '', text)
 
 
 def extract_question_without_options(text: str) -> str:
     """
-    从选择题中提取问题部分，不包含选项
+    Extract the question stem from a multiple-choice prompt, excluding options.
     
     Args:
-        text: 完整的问题文本（包含选项）
+        text: Full question text including options
         
     Returns:
-        只包含问题的文本（不含选项）
+        The question stem without the options
         
     Examples:
         >>> extract_question_without_options("Who was using this cup? A. {XiaoMing} B. {XiaoJing} C. No one")
@@ -306,32 +305,31 @@ def extract_question_without_options(text: str) -> str:
         >>> extract_question_without_options("What color is it? A. Red B. Blue")
         "What color is it?"
     """
-    # 使用正则表达式匹配选项的开始位置（空格 + 大写字母 + 点，如 " A."）
-    # 匹配模式：可能有多个空格，然后是大写字母A-Z，然后是点
+    # Use a regex to find the start of the option list (" A.", " B.", etc.)
     match = re.search(r'\s+[A-Z]\.', text)
     
     if match:
-        # 找到选项开始位置，截取之前的内容
+        # If found, keep only the text before the first option marker
         question_only = text[:match.start()].strip()
         return question_only
     else:
-        # 没有找到选项标记，返回原文本（去除首尾空格）
+        # If no option marker is found, return the trimmed original text
         return text.strip()
 
 
 def clean_text(text: str) -> str:
     """
-    清理文本（移除多余空格、换行等）
+    Clean text by removing extra whitespace and line breaks.
     
     Args:
-        text: 输入文本
+        text: Input text
         
     Returns:
-        清理后的文本
+        Cleaned text
     """
-    # 移除多余空格
+    # Collapse consecutive whitespace
     text = re.sub(r'\s+', ' ', text)
-    # 移除首尾空格
+    # Trim leading and trailing whitespace
     text = text.strip()
     return text
 
@@ -341,7 +339,7 @@ def has_complete_option_fields(
     option_labels: Sequence[str] = ("A", "B", "C", "D"),
 ) -> bool:
     """
-    判断 qa_item 是否包含完整的 option 字段（optionA~optionD）。
+    Check whether qa_item contains a complete set of option fields (optionA-optionD).
     """
     for label in option_labels:
         key = f"option{label}"
@@ -356,19 +354,19 @@ def build_question_with_options(
     require_complete_options: bool = False,
 ) -> str:
     """
-    构造问题文本：
-    - 基于 qa_item['question'] 作为 stem；
-    - 若有完整 option 字段，则拼接成多行选项；
-    - 若无完整 option 字段：
-      - require_complete_options=False 时返回 stem（兼容旧数据）
-      - require_complete_options=True 时抛出断言
+    Build the question text:
+    - Use qa_item['question'] as the stem
+    - If all option fields exist, append them as multi-line options
+    - Otherwise:
+      - return the stem when require_complete_options=False
+      - raise an assertion when require_complete_options=True
     """
     stem = str(qa_item.get("question", "")).strip()
-    assert stem, "qa_item['question'] 不能为空字符串"
+    assert stem, "qa_item['question'] cannot be an empty string"
 
     has_all = has_complete_option_fields(qa_item, option_labels)
     if require_complete_options:
-        assert has_all, "qa_item 缺少完整 optionA~optionD 字段"
+        assert has_all, "qa_item is missing a complete set of optionA-optionD fields"
     if not has_all:
         return stem
 
@@ -376,7 +374,7 @@ def build_question_with_options(
     for label in option_labels:
         key = f"option{label}"
         value = qa_item.get(key)
-        assert value is not None, f"qa_item['{key}'] 不能为空"
+        assert value is not None, f"qa_item['{key}'] cannot be empty"
         option_lines.append(f"{label}. {str(value).strip()}")
 
     return f"{stem}\n" + "\n".join(option_lines)
@@ -388,17 +386,17 @@ def build_rotated_qa_item(
     option_labels: Sequence[str] = ("A", "B", "C", "D"),
 ) -> Dict:
     """
-    构造轮换后的题目副本：
-    - 正确内容移动到 target_gt 对应位置；
-    - 采用“交换原正确选项与目标选项”的最小扰动策略；
-    - 更新 gt 为 target_gt。
+    Build a rotated copy of the question:
+    - Move the correct option content to target_gt
+    - Use a minimal-change swap between the original correct option and the target option
+    - Update gt to target_gt
     """
     target_gt = str(target_gt).strip().upper()
-    assert target_gt in option_labels, f"无效 target_gt: {target_gt}"
+    assert target_gt in option_labels, f"Invalid target_gt: {target_gt}"
 
     original_gt = str(qa_item.get("gt", "")).strip().upper()
-    assert original_gt in option_labels, f"无效原始 gt: {original_gt}"
-    assert has_complete_option_fields(qa_item, option_labels), "轮换需要完整 optionA~optionD"
+    assert original_gt in option_labels, f"Invalid original gt: {original_gt}"
+    assert has_complete_option_fields(qa_item, option_labels), "Rotation requires a complete set of optionA-optionD"
 
     rotated = qa_item.copy()
     option_map = {label: str(qa_item[f"option{label}"]) for label in option_labels}
@@ -417,13 +415,13 @@ def build_rotated_qa_item(
 
 def extract_answer_from_response(response: str) -> str:
     """
-    从模型回答中提取答案
+    Extract the answer from a model response.
     
     Args:
-        response: 模型的完整回答文本
+        response: Full response text from the model
         
     Returns:
-        提取的答案选项字母（如 "A", "B", "C" 等），如果未找到则返回空字符串
+        Extracted answer option letter, or an empty string if not found
         
     Examples:
         >>> extract_answer_from_response("I think the answer is <ans>A</ans>")
@@ -437,68 +435,66 @@ def extract_answer_from_response(response: str) -> str:
         >>> extract_answer_from_response("I don't know")
         ""
     """
-    # 第一步：尝试提取 <ans>...</ans> 标签内的内容
+    # Step 1: try to extract the content inside <ans>...</ans>
     match = re.search(r'<ans>(.*?)</ans>', response, re.IGNORECASE | re.DOTALL)
     
     if match:
-        # 提取答案并清理空格
+        # Extract the answer text and trim whitespace
         answer = match.group(1).strip()
         
-        # 只提取选项字母部分（第一个字母）
-        # 兼容 "A" 和 "A. yes" 两种格式
+        # Only keep the option letter (the first letter)
+        # Supports both "A" and "A. yes"
         if answer:
-            # 提取第一个大写字母作为选项
+            # Extract the first uppercase letter as the option
             option_match = re.match(r'^([A-Z])', answer.upper())
             if option_match:
                 return option_match.group(1)
-            # 如果没有找到字母，返回原始答案（向后兼容）
+            # If no option letter is found, return the raw answer for backward compatibility
             return answer
         return ""
     
-    # 第二步：如果没有 <ans> 标签，尝试提取 "A.", "B.", "C.", "D." 格式的答案
-    # 匹配以大写字母开头，后面紧跟一个点的模式
+    # Step 2: if there is no <ans> tag, look for "A.", "B.", etc.
     option_match = re.search(r'\b([A-Z])\.', response)
     if option_match:
         return option_match.group(1)
     
-    # 第三步：尝试提取单个大写字母（如 "A", "B", "C", "D"）
-    # 匹配独立的大写字母（前后是单词边界或空格）
+    # Step 3: try to extract a standalone uppercase option letter
     single_letter_match = re.search(r'(?:^|\s)([A-D])(?:\s|$)', response)
     if single_letter_match:
         return single_letter_match.group(1)
     
-    # 第四步：如果都没找到，返回空字符串
+    # Step 4: return an empty string if nothing matches
     return ""
 
 
 def evaluate_qa_results(results_data: List[dict]) -> dict:
     """
-    评估问答结果，统计正确率和错误题目
+    Evaluate QA results and compute accuracies plus error details.
     
     Args:
-        results_data: 问答结果列表，每个元素是包含 video_path 和 timestamps 的字典
-                     timestamps 中每个问题应包含：id, qa_type, gt, answer 字段
+        results_data: QA results list; each item includes video_path and timestamps
+                     Each question in timestamps should include id, qa_type, gt, and answer
         
     Returns:
-        评估结果字典，包含：
-        - total_accuracy: 总正确率
-        - current_time_accuracy: current-time qa 正确率
-        - past_time_accuracy: past-time qa 正确率
-        - total_count: 总题目数
-        - correct_count: 总正确数
-        - current_time_count: current-time qa 题目数
-        - current_time_correct: current-time qa 正确数
-        - past_time_count: past-time qa 题目数
-        - past_time_correct: past-time qa 正确数
-        - wrong_ids: 错误题目的 id 列表
-        - details: 每道题的详细信息（id, qa_type, gt, predicted, is_correct）
+        Evaluation result dict, containing:
+        - total_accuracy: overall accuracy
+        - current_time_accuracy: accuracy for current-time qa
+        - past_time_accuracy: accuracy for past-time qa
+        - total_count: total number of questions
+        - correct_count: total number of correct answers
+        - current_time_count: number of current-time qa questions
+        - current_time_correct: number of correct current-time qa answers
+        - past_time_count: number of past-time qa questions
+        - past_time_correct: number of correct past-time qa answers
+        - wrong_ids: list of wrong question ids
+        - details: per-question details (id, qa_type, gt, predicted, is_correct)
         
     Examples:
         >>> results = [{"video_path": "...", "timestamps": [...]}]
         >>> stats = evaluate_qa_results(results)
-        >>> print(f"总正确率: {stats['total_accuracy']:.2%}")
+        >>> print(f"Overall accuracy: {stats['total_accuracy']:.2%}")
     """
-    # 初始化统计变量
+    # Initialize counters
     total_count = 0
     correct_count = 0
     current_time_count = 0
@@ -508,7 +504,7 @@ def evaluate_qa_results(results_data: List[dict]) -> dict:
     wrong_ids = []
     details = []
     
-    # 遍历所有视频的问答结果
+    # Iterate over QA results for all videos
     for video_item in results_data:
         timestamps = video_item.get('timestamps', [])
         
@@ -518,13 +514,13 @@ def evaluate_qa_results(results_data: List[dict]) -> dict:
             gt = qa_item.get('gt', '').strip()
             answer_raw = qa_item.get('answer', '')
             
-            # 从模型回答中提取答案
+            # Extract the answer from the model response
             predicted = extract_answer_from_response(answer_raw).strip()
             
-            # 判断是否正确（不区分大小写）
+            # Check correctness case-insensitively
             is_correct = (predicted.upper() == gt.upper()) if (predicted and gt) else False
             
-            # 记录详细信息
+            # Record detailed information
             details.append({
                 'id': qa_id,
                 'qa_type': qa_type,
@@ -533,14 +529,14 @@ def evaluate_qa_results(results_data: List[dict]) -> dict:
                 'is_correct': is_correct
             })
             
-            # 统计总数
+            # Update overall counts
             total_count += 1
             if is_correct:
                 correct_count += 1
             else:
                 wrong_ids.append(qa_id)
             
-            # 分类统计
+            # Update per-category counts
             if qa_type == 'current-time qa':
                 current_time_count += 1
                 if is_correct:
@@ -550,12 +546,12 @@ def evaluate_qa_results(results_data: List[dict]) -> dict:
                 if is_correct:
                     past_time_correct += 1
     
-    # 计算正确率
+    # Compute accuracies
     total_accuracy = correct_count / total_count if total_count > 0 else 0.0
     current_time_accuracy = current_time_correct / current_time_count if current_time_count > 0 else 0.0
     past_time_accuracy = past_time_correct / past_time_count if past_time_count > 0 else 0.0
     
-    # 返回结果
+    # Return the evaluation result
     return {
         'total_accuracy': total_accuracy,
         'current_time_accuracy': current_time_accuracy,
@@ -573,75 +569,75 @@ def evaluate_qa_results(results_data: List[dict]) -> dict:
 
 def print_evaluation_report(eval_result: dict):
     """
-    打印评估报告（格式化输出）
+    Print a formatted evaluation report.
     
     Args:
-        eval_result: evaluate_qa_results 函数返回的评估结果字典
+        eval_result: Evaluation result dict returned by evaluate_qa_results
     """
     print("\n" + "=" * 80)
-    print("问答评估报告")
+    print("QA Evaluation Report")
     print("=" * 80)
     
-    # 总体统计
-    print(f"\n【总体统计】")
-    print(f"  总题目数: {eval_result['total_count']}")
-    print(f"  正确数: {eval_result['correct_count']}")
-    print(f"  错误数: {len(eval_result['wrong_ids'])}")
-    print(f"  总正确率: {eval_result['total_accuracy']:.2%}")
+    # Overall statistics
+    print("\n[Overall]")
+    print(f"  Total questions: {eval_result['total_count']}")
+    print(f"  Correct: {eval_result['correct_count']}")
+    print(f"  Incorrect: {len(eval_result['wrong_ids'])}")
+    print(f"  Overall accuracy: {eval_result['total_accuracy']:.2%}")
     
-    # Current-time QA 统计
-    print(f"\n【Current-time QA】")
-    print(f"  题目数: {eval_result['current_time_count']}")
-    print(f"  正确数: {eval_result['current_time_correct']}")
-    print(f"  错误数: {eval_result['current_time_count'] - eval_result['current_time_correct']}")
-    print(f"  正确率: {eval_result['current_time_accuracy']:.2%}")
+    # Current-time QA statistics
+    print("\n[Current-time QA]")
+    print(f"  Questions: {eval_result['current_time_count']}")
+    print(f"  Correct: {eval_result['current_time_correct']}")
+    print(f"  Incorrect: {eval_result['current_time_count'] - eval_result['current_time_correct']}")
+    print(f"  Accuracy: {eval_result['current_time_accuracy']:.2%}")
     
-    # Past-time QA 统计
-    print(f"\n【Past-time QA】")
-    print(f"  题目数: {eval_result['past_time_count']}")
-    print(f"  正确数: {eval_result['past_time_correct']}")
-    print(f"  错误数: {eval_result['past_time_count'] - eval_result['past_time_correct']}")
-    print(f"  正确率: {eval_result['past_time_accuracy']:.2%}")
+    # Past-time QA statistics
+    print("\n[Past-time QA]")
+    print(f"  Questions: {eval_result['past_time_count']}")
+    print(f"  Correct: {eval_result['past_time_correct']}")
+    print(f"  Incorrect: {eval_result['past_time_count'] - eval_result['past_time_correct']}")
+    print(f"  Accuracy: {eval_result['past_time_accuracy']:.2%}")
     
-    # 错误题目列表
+    # Incorrect question list
     if eval_result['wrong_ids']:
-        print(f"\n【错误题目 ID】")
+        print("\n[Incorrect Question IDs]")
         print(f"  {eval_result['wrong_ids']}")
         
-        # 显示错误题目的详细信息
-        print(f"\n【错误题目详情】")
+        # Show details for incorrect questions
+        print("\n[Incorrect Question Details]")
         for detail in eval_result['details']:
             if not detail['is_correct']:
                 print(f"  ID {detail['id']} ({detail['qa_type']}): GT={detail['gt']}, Predicted={detail['predicted']}")
     else:
-        print(f"\n【错误题目 ID】")
-        print(f"  无错误题目，全部正确！")
+        print("\n[Incorrect Question IDs]")
+        print("  No incorrect questions. Everything is correct!")
     
     print("\n" + "=" * 80)
 
 
 if __name__ == "__main__":
-    # 简单测试
-    print("测试时间转换功能:")
+    # Simple tests
+    print("Testing time conversion:")
     print(f"  time_to_seconds('01:23:45') = {time_to_seconds('01:23:45')}")
     print(f"  time_to_seconds('23:45') = {time_to_seconds('23:45')}")
     print(f"  seconds_to_time(5025) = {seconds_to_time(5025)}")
     
-    print("\n测试概念提取功能:")
-    test_text = "这是关于 {概念A} 和 {概念B} 的问题，{概念A} 很重要"
+    print("\nTesting concept extraction:")
+    test_text = "This question is about {ConceptA} and {ConceptB}, and {ConceptA} is important"
     concepts = extract_concepts(test_text)
-    print(f"  提取的概念: {concepts}")
+    print(f"  Extracted concepts: {concepts}")
     
-    print("\n测试文本清理功能:")
-    test_text = "这是   关于   {概念A}   的问题"
-    print(f"  原文本: '{test_text}'")
-    print(f"  移除标记: '{remove_concept_markers(test_text)}'")
-    print(f"  清理后: '{clean_text(remove_concept_markers(test_text))}'")
+    print("\nTesting text cleaning:")
+    test_text = "This   is   a question   about   {ConceptA}"
+    print(f"  Original text: '{test_text}'")
+    print(f"  Without markers: '{remove_concept_markers(test_text)}'")
+    print(f"  Cleaned text: '{clean_text(remove_concept_markers(test_text))}'")
     
-    print("\n测试问题提取功能:")
+    print("\nTesting question extraction:")
     test_q1 = "Who was using this cup just now? A. {XiaoMing} B. {XiaoJing} C. No one"
     test_q2 = "What color is the car? A. Red B. Blue C. Green"
-    print(f"  原问题1: '{test_q1}'")
-    print(f"  提取后: '{extract_question_without_options(test_q1)}'")
-    print(f"  原问题2: '{test_q2}'")
-    print(f"  提取后: '{extract_question_without_options(test_q2)}'")
+    print(f"  Original question 1: '{test_q1}'")
+    print(f"  Extracted stem: '{extract_question_without_options(test_q1)}'")
+    print(f"  Original question 2: '{test_q2}'")
+    print(f"  Extracted stem: '{extract_question_without_options(test_q2)}'")

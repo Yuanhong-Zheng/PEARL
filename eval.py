@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-统计所有 evaluation.json 文件的平均准确率
-支持通过 JSON 文件指定需要忽略的问题
+Compute average accuracy across all evaluation.json files.
+Supports specifying ignored questions through a JSON file.
 """
 
 import json
@@ -12,22 +12,22 @@ from collections import defaultdict
 
 def load_ignore_list(ignore_file_path):
     """
-    加载需要忽略的问题列表
+    Load the list of questions to ignore.
 
     Args:
-        ignore_file_path: 忽略列表文件路径
+        ignore_file_path: Path to the ignore-list file
 
     Returns:
         dict: {video_name: set(qa_ids)}
 
-    示例 JSON 格式:
+    Example JSON format:
     {
         "ignored_questions": [
             {"video": "xiaohei", "qa_id": 14},
             {"video": "juexing", "qa_id": 10}
         ]
     }
-    或者:
+    Or:
     [
         {"video": "xiaohei", "qa_id": 14},
         {"video": "juexing", "qa_id": 10}
@@ -40,16 +40,16 @@ def load_ignore_list(ignore_file_path):
         with open(ignore_file_path, "r", encoding="utf-8") as f:
             data = json.load(f)
 
-        # 处理不同的 JSON 格式
+        # Handle different JSON formats
         if isinstance(data, dict) and "ignored_questions" in data:
             questions = data["ignored_questions"]
         elif isinstance(data, list):
             questions = data
         else:
-            print("⚠ 警告: 忽略文件格式不正确，应该是列表或包含 'ignored_questions' 的字典")
+            print("⚠ Warning: invalid ignore-file format; expected a list or a dict containing 'ignored_questions'")
             return {}
 
-        # 构建 video_name -> set(qa_ids) 的映射
+        # Build a mapping from video_name -> set(qa_ids)
         ignore_dict = defaultdict(set)
         for item in questions:
             video = item.get("video", "")
@@ -60,71 +60,71 @@ def load_ignore_list(ignore_file_path):
         return ignore_dict
 
     except Exception as e:
-        print(f"⚠ 警告: 读取忽略文件失败: {e}")
+        print(f"⚠ Warning: failed to read ignore file: {e}")
         return {}
 
 
 def should_ignore_question(video_name, qa_id, ignore_dict):
     """
-    判断是否应该忽略某个问题
+    Determine whether a question should be ignored.
 
     Args:
-        video_name: 视频名称（不含 _evaluation 后缀）
-        qa_id: 问题 ID
-        ignore_dict: 忽略字典
-
+        video_name: Video name without the _evaluation suffix
+        qa_id: Question ID
+        ignore_dict: Ignore mapping
+        
     Returns:
-        bool: True 表示应该忽略
+        bool: True if the question should be ignored
     """
     return qa_id in ignore_dict.get(video_name, set())
 
 
 def main():
-    # 解析命令行参数
-    parser = argparse.ArgumentParser(description="统计所有 evaluation.json 文件的平均准确率")
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description="Compute average accuracy across all evaluation.json files")
     parser.add_argument(
         "result_dir",
         nargs="?",
         default=DEFAULT_RESULT_DIR,
-        help="包含 evaluation.json 和 result.json 文件的目录路径（位置参数）",
+        help="Directory containing evaluation.json and result.json files (positional argument)",
     )
     parser.add_argument(
         "--result_dir",
         dest="result_dir_flag",
         type=str,
         default=None,
-        help="包含 evaluation.json 和 result.json 文件的目录路径（兼容旧参数）",
+        help="Directory containing evaluation.json and result.json files (backward-compatible flag)",
     )
     parser.add_argument(
         "--ignore",
         type=str,
         default=DEFAULT_IGNORE_FILE,
-        help="忽略列表 JSON 文件路径（包含需要忽略的问题）",
+        help="Path to the ignore-list JSON file (contains questions to ignore)",
     )
     args = parser.parse_args()
 
-    # 优先使用 --result_dir，其次使用位置参数
+    # Prefer --result_dir over the positional argument
     result_dir = args.result_dir_flag if args.result_dir_flag else args.result_dir
 
-    # 获取结果文件目录
+    # Resolve the result directory
     script_dir = Path(result_dir)
 
     if not script_dir.exists():
-        print(f"错误：指定的目录不存在: {script_dir}")
+        print(f"Error: specified directory does not exist: {script_dir}")
         return
 
-    print(f"统计目录: {script_dir}\n")
+    print(f"Result directory: {script_dir}\n")
 
-    # 加载忽略列表
+    # Load the ignore list
     ignore_dict = load_ignore_list(args.ignore)
     if ignore_dict:
         total_ignored = sum(len(ids) for ids in ignore_dict.values())
-        print(f"✓ 已加载忽略列表，共 {total_ignored} 个问题将被忽略")
-        print(f"  涉及 {len(ignore_dict)} 个视频\n")
+        print(f"✓ Ignore list loaded; {total_ignored} question(s) will be ignored")
+        print(f"  Spanning {len(ignore_dict)} video(s)\n")
     else:
-        print("未使用忽略列表\n")
+        print("No ignore list used\n")
 
-    # 初始化统计变量
+    # Initialize counters
     total_count = 0
     correct_count = 0
     current_time_count = 0
@@ -132,33 +132,33 @@ def main():
     past_time_count = 0
     past_time_correct = 0
 
-    # 忽略统计
+    # Ignore statistics
     total_ignored = 0
     ignored_by_type = {"current-time qa": 0, "past-time qa": 0}
 
-    # 存储每个文件的统计信息
+    # Store per-file statistics
     file_stats = []
 
-    # 遍历所有 evaluation.json 文件
+    # Iterate over all evaluation.json files
     evaluation_files = sorted(script_dir.glob("*_evaluation.json"))
 
     if not evaluation_files:
-        print("错误：没有找到任何 evaluation.json 文件")
+        print("Error: no evaluation.json files were found")
         return
 
-    print(f"找到 {len(evaluation_files)} 个评估文件\n")
+    print(f"Found {len(evaluation_files)} evaluation file(s)\n")
     print("=" * 80)
 
     for eval_file in evaluation_files:
         try:
-            # 读取 evaluation.json
+            # Load evaluation.json
             with open(eval_file, "r", encoding="utf-8") as f:
                 eval_data = json.load(f)
 
-            # 获取视频名称
+            # Extract the video name
             video_name = eval_file.stem.replace("_evaluation", "")
 
-            # 统一使用 evaluation.json 中的 details 逐题统计
+            # Use the per-question details from evaluation.json for unified statistics
             details = eval_data.get("details", [])
 
             file_total = 0
@@ -173,14 +173,14 @@ def main():
                 qa_id = item.get("id")
                 qa_type = item.get("qa_type", "")
 
-                # 检查是否应该忽略
+                # Check whether this question should be ignored
                 if should_ignore_question(video_name, qa_id, ignore_dict):
                     file_ignored += 1
                     if qa_type in ignored_by_type:
                         ignored_by_type[qa_type] += 1
                     continue
 
-                # 只统计 current-time qa 和 past-time qa
+                # Only count current-time qa and past-time qa
                 if qa_type not in ["current-time qa", "past-time qa"]:
                     continue
 
@@ -201,7 +201,7 @@ def main():
 
             total_ignored += file_ignored
 
-            # 累加统计数据
+            # Accumulate statistics
             total_count += file_total
             correct_count += file_correct
             current_time_count += file_current_count
@@ -209,12 +209,12 @@ def main():
             past_time_count += file_past_count
             past_time_correct += file_past_correct
 
-            # 计算准确率
+            # Compute accuracies
             file_total_accuracy = file_correct / file_total if file_total > 0 else 0
             file_current_accuracy = file_current_correct / file_current_count if file_current_count > 0 else 0
             file_past_accuracy = file_past_correct / file_past_count if file_past_count > 0 else 0
 
-            # 保存文件统计信息
+            # Save per-file statistics
             file_stats.append(
                 {
                     "name": eval_file.name,
@@ -231,17 +231,17 @@ def main():
                 }
             )
 
-            # 打印单个文件的统计
-            print(f"文件: {eval_file.name}")
-            print(f"  总体: {file_correct}/{file_total} = {file_total_accuracy:.2%}")
+            # Print per-file statistics
+            print(f"File: {eval_file.name}")
+            print(f"  Overall: {file_correct}/{file_total} = {file_total_accuracy:.2%}")
             print(f"  Current-time: {file_current_correct}/{file_current_count} = {file_current_accuracy:.2%}")
             print(f"  Past-time: {file_past_correct}/{file_past_count} = {file_past_accuracy:.2%}")
             if file_ignored > 0:
-                print(f"  忽略问题数: {file_ignored}")
+                print(f"  Ignored questions: {file_ignored}")
             print()
 
         except Exception as e:
-            print(f"警告：读取文件 {eval_file.name} 时出错: {e}")
+            print(f"Warning: error reading file {eval_file.name}: {e}")
             import traceback
 
             traceback.print_exc()
@@ -251,33 +251,33 @@ def main():
     past_time_accuracy = past_time_correct / past_time_count if past_time_count > 0 else 0
     avg_accuracy = (current_time_accuracy + past_time_accuracy) / 2
 
-    # 打印整体统计结果
+    # Print overall statistics
     print("=" * 80)
-    print("\n📊 整体统计结果\n")
+    print("\nOverall Statistics\n")
     print("=" * 80)
 
     if total_ignored > 0:
-        print("\n忽略统计:")
-        print(f"  总共忽略问题数: {total_ignored}")
-        print(f"  Current-time qa 忽略: {ignored_by_type.get('current-time qa', 0)}")
-        print(f"  Past-time qa 忽略: {ignored_by_type.get('past-time qa', 0)}")
+        print("\nIgnore Statistics:")
+        print(f"  Total ignored questions: {total_ignored}")
+        print(f"  Current-time qa ignored: {ignored_by_type.get('current-time qa', 0)}")
+        print(f"  Past-time qa ignored: {ignored_by_type.get('past-time qa', 0)}")
 
-    print("\n平均准确率:")
-    print(f"  准确率: {avg_accuracy:.2%}")
+    print("\nAverage Accuracy:")
+    print(f"  Accuracy: {avg_accuracy:.2%}")
 
-    print("\nCurrent-time QA 准确率:")
-    print(f"  正确数量: {current_time_correct}")
-    print(f"  题目总数: {current_time_count}")
-    print(f"  准确率: {current_time_accuracy:.2%} ({current_time_correct}/{current_time_count})")
+    print("\nCurrent-time QA Accuracy:")
+    print(f"  Correct answers: {current_time_correct}")
+    print(f"  Total questions: {current_time_count}")
+    print(f"  Accuracy: {current_time_accuracy:.2%} ({current_time_correct}/{current_time_count})")
 
-    print("\nPast-time QA 准确率:")
-    print(f"  正确数量: {past_time_correct}")
-    print(f"  题目总数: {past_time_count}")
-    print(f"  准确率: {past_time_accuracy:.2%} ({past_time_correct}/{past_time_count})")
+    print("\nPast-time QA Accuracy:")
+    print(f"  Correct answers: {past_time_correct}")
+    print(f"  Total questions: {past_time_count}")
+    print(f"  Accuracy: {past_time_accuracy:.2%} ({past_time_correct}/{past_time_count})")
 
     print("\n" + "=" * 80)
 
-    # 保存整体统计结果到文件
+    # Save overall statistics to a file
     output_file = script_dir / "overall_statistics.json"
     overall_stats = {
         "total_files": len(evaluation_files),
@@ -308,11 +308,11 @@ def main():
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(overall_stats, f, ensure_ascii=False, indent=2)
 
-    print(f"\n✓ 统计结果已保存到: {output_file.name}")
+    print(f"\n✓ Statistics saved to: {output_file.name}")
 
 
 if __name__ == "__main__":
-    # ============ 在这里修改默认参数 ============
+    # ============ Update Default Parameters Here ============
     DEFAULT_RESULT_DIR = "output_results/test/qwen3vl_k4_n1_pre0_fps1_debug2"
     DEFAULT_IGNORE_FILE = None
     # ==========================================
