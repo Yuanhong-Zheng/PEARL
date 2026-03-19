@@ -64,7 +64,7 @@ Please download the following models and place them under `models/`:
 
 - `Qwen3-VL-8B-Instruct`
 - `Qwen3-VL-Embedding-2B`
-- `llava-onevision-qwen2-7b-ov-hf`
+- `llava-onevision-qwen2-7b-ov-hf` (optional)
 
 ## Evaluation
 
