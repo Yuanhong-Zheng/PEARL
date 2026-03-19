@@ -21,6 +21,9 @@ NUM_GPUS=${1:-8}
 VLLM_BASE_PORT=22003
 EMBEDDING_BASE_PORT=5000
 
+QWENVL_MODEL_PATH="models/Qwen3-VL-8B-Instruct"
+LLAVA_MODEL_PATH="models/llava-onevision-qwen2-7b-ov-hf"
+
 # 项目根目录（PEARL）
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # 相对项目根目录的脚本路径
@@ -33,6 +36,18 @@ VLLM_SCRIPT="${PROJECT_ROOT}/${VLLM_SCRIPT_REL}"
 EMBEDDING_SCRIPT="${PROJECT_ROOT}/${EMBEDDING_SCRIPT_REL}"
 LOG_DIR="${PROJECT_ROOT}/${LOG_DIR_REL}"
 
+case "$(basename "${VLLM_SCRIPT_REL}")" in
+    "qwenvl_flask_server.py")
+        VLLM_MODEL_PATH="${QWENVL_MODEL_PATH}"
+        ;;
+    "llava_ov_flask_server.py")
+        VLLM_MODEL_PATH="${LLAVA_MODEL_PATH}"
+        ;;
+    *)
+        echo "错误: 未知的 VLLM 脚本 ${VLLM_SCRIPT_REL}，无法确定 model_path"
+        exit 1
+        ;;
+esac
 
 # ====================================
 
@@ -42,6 +57,8 @@ echo "========================================"
 echo "GPU 数量: ${NUM_GPUS}"
 echo "vLLM 基础端口: ${VLLM_BASE_PORT}"
 echo "Embedding 基础端口: ${EMBEDDING_BASE_PORT}"
+echo "vLLM 脚本: ${VLLM_SCRIPT_REL}"
+echo "vLLM 模型路径: ${VLLM_MODEL_PATH}"
 echo "========================================"
 echo ""
 
@@ -61,6 +78,7 @@ for ((gpu=0; gpu<NUM_GPUS; gpu++)); do
 
     # 启动 vLLM 服务器
     CUDA_VISIBLE_DEVICES=${gpu} python "${VLLM_SCRIPT}" \
+        --model_path "${VLLM_MODEL_PATH}" \
         --port ${VLLM_PORT} \
         > "${LOG_DIR}/vllm_gpu${gpu}.log" 2>&1 &
     PIDS+=($!)
@@ -97,4 +115,3 @@ echo ""
 # 等待所有后台进程（按 Ctrl+C 终止所有）
 trap "echo '正在终止所有服务...'; kill ${PIDS[*]} 2>/dev/null; exit 0" SIGINT SIGTERM
 wait
-

@@ -316,8 +316,7 @@ def main():
 
 if __name__ == "__main__":
     # ============ 在这里修改默认参数 ============
-    DEFAULT_RESULT_DIR = "output_results/test/qwen3vl_k4_n1_pre0_fps1_short2"
-    # DEFAULT_IGNORE_FILE = "output_results/ignore_v2.json"
+    DEFAULT_RESULT_DIR = "output_results/test/qwen3vl_k4_n1_pre0_fps1_debug2"
     DEFAULT_IGNORE_FILE = None
     # ==========================================
     main()
