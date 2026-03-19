@@ -76,8 +76,7 @@ class VideoQAInference:
         self.annotation_path = str(Path(annotation_path).resolve())
         self.clips_info_path = str(Path(clips_info_path).resolve())
         self.annotation_base_dir = Path(self.annotation_path).parent
-        project_root = Path(__file__).resolve().parent
-        model_path = str(_resolve_path(model_path, project_root))
+        model_path = str(_resolve_path(model_path, Path(__file__).resolve().parent))
         
         self.num_neighbor = num_neighbor
         self.enable_rotation = enable_rotation
@@ -88,16 +87,13 @@ class VideoQAInference:
         self.output_dir.mkdir(exist_ok=True, parents=True)
         print("\n[1/3] 初始化概念数据库...")
 
-        annotation_path_obj = Path(annotation_path)
-        annotation_name = annotation_path_obj.stem
-        
-        cache_dir_path = Path(cache_dir).resolve()
-        annotation_cache_dir = cache_dir_path / annotation_name
+        annotation_cache_dir = Path(cache_dir).resolve() / Path(annotation_path).stem
         annotation_cache_dir.mkdir(parents=True, exist_ok=True)
 
-        concept_db_path = annotation_cache_dir / "concept_db.json"
-        frame_dir = annotation_cache_dir
-        self.concept_db = ConceptDatabase(db_path=str(concept_db_path), frame_dir=str(frame_dir))
+        self.concept_db = ConceptDatabase(
+            db_path=str(annotation_cache_dir / "concept_db.json"),
+            frame_dir=str(annotation_cache_dir),
+        )
 
         self.concept_db.add_concepts_from_annotation_file(
             annotation_file=self.annotation_path,
@@ -108,25 +104,20 @@ class VideoQAInference:
         temp_client = OpenAI(api_key="EMPTY", base_url=api_base_url, timeout=3600)
         
         for concept in self.concept_db.data['concepts']:
-            concept_name = concept.get('concept_name', 'Unknown')
-            frame_path = concept.get('frame_path', '')
-            original_description = concept.get('description', '')
-            retrieval_desc = generate_distinctive_description(
+            concept['retrieval_description'] = generate_distinctive_description(
                 client=temp_client,
                 model_path=model_path,
-                image_path=frame_path,
-                concept_name=concept_name,
-                original_description=original_description
+                image_path=concept.get('frame_path', ''),
+                concept_name=concept.get('concept_name', 'Unknown'),
+                original_description=concept.get('description', ''),
             )
-            concept['retrieval_description'] = retrieval_desc
 
         self.concept_db._save_db()
-        self.concept_retrieval_map = {}
-        for concept in self.concept_db.data['concepts']:
-            name = concept.get('concept_name', '')
-            desc = concept.get('retrieval_description', '')
-            if name and desc:
-                self.concept_retrieval_map[name] = desc
+        self.concept_retrieval_map = {
+            concept.get('concept_name', ''): concept.get('retrieval_description', '')
+            for concept in self.concept_db.data['concepts']
+            if concept.get('concept_name', '') and concept.get('retrieval_description', '')
+        }
 
         print("\n[2/3] 初始化 Clip 记忆系统...")
         embeddings_cache_dir = annotation_cache_dir
@@ -165,14 +156,12 @@ class VideoQAInference:
         Returns:
             概念信息字典（包含 frame_path, concept_name 等）
         """
-        concept_info = self.concept_db.query_by_name(concept_name)
-        if concept_info is None:
+        if (concept_info := self.concept_db.query_by_name(concept_name)) is None:
             print(f"  ⚠ 警告: 概念 '{concept_name}' 在数据库中未找到")
             import ipdb;ipdb.set_trace()
             return None
 
-        frame_path = concept_info.get("frame_path")
-        if frame_path and not Path(frame_path).is_absolute():
+        if (frame_path := concept_info.get("frame_path")) and not Path(frame_path).is_absolute():
             concept_info = concept_info.copy()
             concept_info["frame_path"] = str((Path(self.concept_db.db_path).parent / frame_path).resolve())
         return concept_info
@@ -209,10 +198,11 @@ class VideoQAInference:
         if not concepts_in_query:
             return query
         
-        replacements = {}
-        for concept_name in concepts_in_query:
-            if concept_name in self.concept_retrieval_map:
-                replacements[concept_name] = self.concept_retrieval_map[concept_name]
+        replacements = {
+            name: self.concept_retrieval_map[name]
+            for name in concepts_in_query
+            if name in self.concept_retrieval_map
+        }
         
         if not replacements:
             print(f"  ⚠ 未找到任何概念的 retrieval_description，使用原始 query")
@@ -237,21 +227,9 @@ Requirements:
 - Do NOT add or remove any information
 - Output ONLY the rewritten question, nothing else"""
         
-        messages = [
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": prompt
-                    }
-                ]
-            }
-        ]
-        
         response = self.client.chat.completions.create(
             model=self.model_path,
-            messages=messages,
+            messages=[{"role": "user", "content": [{"type": "text", "text": prompt}]}],
             max_tokens=512,
             temperature=0
         )
@@ -283,20 +261,15 @@ Requirements:
             max_seconds = time_to_seconds(max_time)
             original_clips_data = self.clip_memory.clips_data
             original_clip_embeddings = self.clip_memory.clip_embeddings
-
-            filtered_indices = []
-            filtered_clips = []
-            for i, clip in enumerate(original_clips_data):
-                if clip['end_time'] < max_seconds:
-                    filtered_indices.append(i)
-                    filtered_clips.append(clip)
+            filtered = [(i, clip) for i, clip in enumerate(original_clips_data) if clip['end_time'] < max_seconds]
             
-            if not filtered_clips:
+            if not filtered:
                 print(f"  ⚠ 警告: 在时间 {max_time} 之前没有找到任何片段")
                 return []
 
+            filtered_indices, filtered_clips = zip(*filtered)
             self.clip_memory.clips_data = filtered_clips
-            self.clip_memory.clip_embeddings = original_clip_embeddings[filtered_indices]
+            self.clip_memory.clip_embeddings = original_clip_embeddings[list(filtered_indices)]
             results = self.clip_memory.search(query, top_k=top_k)
 
             self.clip_memory.clips_data = original_clips_data
@@ -320,22 +293,16 @@ Requirements:
             return []
         
         if self.num_neighbor == 0:
-            clips = [clip.copy() for clip in retrieved_clips]
-            clips.sort(key=lambda x: x['start_time'])
-            
-            if current_clip_start_time is not None:
-                original_count = len(clips)
-                clips = [clip for clip in clips if clip['end_time'] <= current_clip_start_time]
-                filtered_count = original_count - len(clips)
-                if filtered_count > 0:
-                    print(f"  过滤掉 {filtered_count} 个与current clip重叠的片段")
-            
-            return clips
-        
-        clip_id_to_index = {}
-        for i, clip in enumerate(self.clip_memory.clips_data):
-            clip_id_to_index[clip['clip_id']] = i
-        
+            expanded_clips = sorted((clip.copy() for clip in retrieved_clips), key=lambda x: x['start_time'])
+            if current_clip_start_time is None:
+                return expanded_clips
+            original_count = len(expanded_clips)
+            expanded_clips = [clip for clip in expanded_clips if clip['end_time'] <= current_clip_start_time]
+            if (filtered_count := original_count - len(expanded_clips)) > 0:
+                print(f"  过滤掉 {filtered_count} 个与current clip重叠的片段")
+            return expanded_clips
+
+        clip_id_to_index = {clip['clip_id']: i for i, clip in enumerate(self.clip_memory.clips_data)}
         expanded_clip_ids = set()
         
         for clip in retrieved_clips:
@@ -347,30 +314,19 @@ Requirements:
                 continue
             
             current_index = clip_id_to_index[clip_id]
-            for offset in range(1, self.num_neighbor + 1):
-                prev_index = current_index - offset
-                if prev_index >= 0:
-                    prev_clip = self.clip_memory.clips_data[prev_index]
-                    prev_clip_id = prev_clip['clip_id']
-                    expanded_clip_ids.add(prev_clip_id)
-            for offset in range(1, self.num_neighbor + 1):
-                next_index = current_index + offset
-                if next_index < len(self.clip_memory.clips_data):
-                    next_clip = self.clip_memory.clips_data[next_index]
-                    next_clip_id = next_clip['clip_id']
-                    expanded_clip_ids.add(next_clip_id)
+            expanded_clip_ids.update(
+                self.clip_memory.clips_data[i]['clip_id']
+                for i in range(max(0, current_index - self.num_neighbor), min(len(self.clip_memory.clips_data), current_index + self.num_neighbor + 1))
+            )
 
-        expanded_clips = []
-        for clip in self.clip_memory.clips_data:
-            if clip['clip_id'] in expanded_clip_ids:
-                expanded_clips.append(clip.copy())
-
-        expanded_clips.sort(key=lambda x: x['start_time'])
+        expanded_clips = sorted(
+            (clip.copy() for clip in self.clip_memory.clips_data if clip['clip_id'] in expanded_clip_ids),
+            key=lambda x: x['start_time']
+        )
         if current_clip_start_time is not None:
             original_count = len(expanded_clips)
             expanded_clips = [clip for clip in expanded_clips if clip['end_time'] <= current_clip_start_time]
-            filtered_count = original_count - len(expanded_clips)
-            if filtered_count > 0:
+            if (filtered_count := original_count - len(expanded_clips)) > 0:
                 print(f"  过滤掉 {filtered_count} 个与current clip重叠的片段")
         
         return expanded_clips
@@ -394,71 +350,27 @@ Requirements:
         Returns:
             messages 列表
         """
-        content = []
+        content, add_media = [], lambda media_type, path: content.append({
+            "type": media_type,
+            media_type: {"url": _to_file_url(path)},
+        })
         for concept in concepts_info:
             if concept is None:
                 continue
-            
-            concept_type = concept.get('concept_type', 'frame')
-            
-            if concept_type == 'clip':
-                content.append({
-                    "type": "video_url",
-                    "video_url": {
-                        "url": _to_file_url(concept["frame_path"])
-                    }
-                })
-            else:
-                content.append({
-                    "type": "image_url",
-                    "image_url": {
-                        "url": _to_file_url(concept["frame_path"])
-                    }
-                })
-            
-            content.append({
-                "type": "text",
-                "text": concept['description']
-            })
+            add_media("video_url" if concept.get('concept_type', 'frame') == 'clip' else "image_url", concept["frame_path"])
+            content.append({"type": "text", "text": concept['description']})
         
         if clips_info:
-            content.append({
-                "type": "text",
-                "text": "Here are the previous related video clips:"
-            })
+            content.append({"type": "text", "text": "Here are the previous related video clips:"})
             for clip in clips_info:
-                content.append({
-                    "type": "video_url",
-                    "video_url": {
-                        "url": _to_file_url(clip["clip_path"])
-                    }
-                })
+                add_media("video_url", clip["clip_path"])
         
         if current_clip_path:
-            content.append({
-                "type": "text",
-                "text": "The following is the current video clip:"
-            })
-            content.append({
-                "type": "video_url",
-                "video_url": {
-                    "url": _to_file_url(current_clip_path)
-                }
-            })
+            content.append({"type": "text", "text": "The following is the current video clip:"})
+            add_media("video_url", current_clip_path)
 
-        content.append({
-            "type": "text",
-            "text": f"{question}\n\nPlease output your answer choice in <ans></ans> tags."
-        })
-        
-        messages = [
-            {
-                "role": "user",
-                "content": content
-            }
-        ]
-        
-        return messages
+        content.append({"type": "text", "text": f"{question}\n\nPlease output your answer choice in <ans></ans> tags."})
+        return [{"role": "user", "content": content}]
     
     def call_model(self, messages: List[Dict]) -> tuple:
         """
@@ -470,14 +382,9 @@ Requirements:
         Returns:
             模型生成的回答
         """
-        response = self.client.chat.completions.create(
-            model=self.model_path,
-            messages=messages,
-            max_tokens=1024,
-            temperature=0
-        )
-        answer = response.choices[0].message.content
-        return answer
+        return self.client.chat.completions.create(
+            model=self.model_path, messages=messages, max_tokens=1024, temperature=0
+        ).choices[0].message.content
     
     def process_qa(self, qa_item: Dict, top_k_clips: int = 1) -> Dict:
         """
@@ -505,49 +412,30 @@ Requirements:
         concepts = extract_concepts(question)
 
         print("\n[步骤 2] 检索概念信息...")
-        concepts_info = []
-        for concept_name in concepts:
-            concept_info = self.retrieve_concept_info(concept_name)
-            if concept_info:
-                concepts_info.append(concept_info)
-        assert len(concepts)!=0, "问题中未提取到任何概念，请检查问题格式是否正确，概念应使用 {} 包围"
-        clips_info = []
+        assert concepts, "问题中未提取到任何概念，请检查问题格式是否正确，概念应使用 {} 包围"
+        concepts_info = [info for name in concepts if (info := self.retrieve_concept_info(name))]
         question_time = qa_item.get('time') or qa_item.get('end_time')
         time_seconds = time_to_seconds(question_time)
 
         print(f"\n[步骤 3] 检索相关视频片段 (Top {top_k_clips})...")
-        retrieved_clips = self.retrieve_relevant_clips(
-            question,
-            max_time=question_time,
-            top_k=top_k_clips
+        clips_info = self.expand_clips_with_neighbors(
+            self.retrieve_relevant_clips(question, max_time=question_time, top_k=top_k_clips),
+            (current_clip['start_time'] if (current_clip := self.get_clip_at_time(time_seconds)) else max(0, time_seconds - 1)),
         )
 
-        current_clip_info_temp = self.get_clip_at_time(time_seconds)
-        if current_clip_info_temp is not None:
-            current_clip_start_time = current_clip_info_temp['start_time']
-        else:
-            current_clip_start_time = max(0, time_seconds - 1)
-
-        clips_info = self.expand_clips_with_neighbors(retrieved_clips, current_clip_start_time)
-
         print("\n[步骤 4] 提取当前视频片段...")
-        current_clip_path = None
-        current_clip_info = self.get_clip_at_time(time_seconds)
-
-        if current_clip_info is None:
+        if current_clip is None:
             print(f"  ⚠ 在时间点 {question_time} 未找到对应的视频片段，使用前1秒作为当前片段")
             clip_start_time = max(0, time_seconds - 1)
             clip_id_str = "fallback"
             print(f"  使用备选片段时间范围: {clip_start_time:.2f}s - {time_seconds:.2f}s")
         else:
-            clip_start_time = current_clip_info['start_time']
-            clip_id_str = str(current_clip_info['clip_id'])
+            clip_start_time = current_clip['start_time']
+            clip_id_str = str(current_clip['clip_id'])
 
-        source_video = self.clip_memory.source_video
-        current_clip_filename = f"qa_{qa_id}_current_{clip_id_str}_{clip_start_time:.2f}_{time_seconds:.2f}.mp4"
-        current_clip_path = str((self.output_dir / current_clip_filename).resolve())
+        current_clip_path = str((self.output_dir / f"qa_{qa_id}_current_{clip_id_str}_{clip_start_time:.2f}_{time_seconds:.2f}.mp4").resolve())
         success = extract_video_clip(
-            source_video=source_video,
+            source_video=self.clip_memory.source_video,
             start_time=clip_start_time,
             end_time=time_seconds,
             output_path=current_clip_path,
@@ -597,16 +485,14 @@ Requirements:
             all_correct = None
             rotation_details = []
 
-        qa_item_with_answer = qa_item.copy()
-        qa_item_with_answer['answer'] = final_answer
-        qa_item_with_answer['rotation_enabled'] = rotation_enabled_for_qa
-        qa_item_with_answer['rotation_all_correct'] = all_correct
-        qa_item_with_answer['rotation_details'] = rotation_details
-        qa_item_with_answer['rotation_correct_flags'] = [
-            item["is_correct"] for item in rotation_details
-        ]
-        
-        return qa_item_with_answer
+        return {
+            **qa_item,
+            "answer": final_answer,
+            "rotation_enabled": rotation_enabled_for_qa,
+            "rotation_all_correct": all_correct,
+            "rotation_details": rotation_details,
+            "rotation_correct_flags": [item["is_correct"] for item in rotation_details],
+        }
     
     def process_annotation_file(
         self,
@@ -645,15 +531,9 @@ Requirements:
             print(f"past-time qa 问题数: {past_time_count}")
             print(f"current-time qa 问题数: {current_time_count}")
             
-            processed_timestamps = []
-            
-            for qa_item in target_qas:
-                qa_with_answer = self.process_qa(qa_item, top_k_clips=top_k_clips)
-                processed_timestamps.append(qa_with_answer)
-            
             results.append({
                 "video_path": video_path,
-                "timestamps": processed_timestamps
+                "timestamps": [self.process_qa(qa_item, top_k_clips=top_k_clips) for qa_item in target_qas],
             })
 
         output_dir = Path(output_path)

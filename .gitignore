@@ -1,6 +1,8 @@
 /.cache/
 /output_results/
 /scripts/tmp/
+/scripts/eval_qwen_debug.sh
+/scripts/eval_qwen_debug2.sh
 /server/logs/
 /tmp/
 __pycache__/
