@@ -132,8 +132,6 @@ This command reads all `*_evaluation.json` files in the result directory and rep
 - current-time QA accuracy
 - past-time QA accuracy
 
-It also saves the aggregated statistics to `overall_statistics.json` in the same output directory.
-
 ## TODO
 
 1. Video-Level Data and Evaluation
