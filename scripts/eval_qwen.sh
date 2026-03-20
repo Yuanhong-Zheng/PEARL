@@ -3,8 +3,11 @@
 # Multi-GPU parallel evaluation script
 # Evenly distribute annotation files across multiple GPUs
 #
-# Usage: bash scripts/eval_qwen.sh [NUM_GPUS]
-#   NUM_GPUS: Number of GPUs to use (default: 4, should match start_multi_gpu_servers.sh)
+# Usage: bash scripts/eval_qwen.sh [NUM_GPUS] [TOP_K_CLIPS] [NUM_NEIGHBOR] [CUDA_VISIBLE_DEVICES]
+#   NUM_GPUS: Number of GPUs to use (default: 8, should match start_multi_gpu_servers.sh)
+#   TOP_K_CLIPS: Number of retrieved clips (default: 4)
+#   NUM_NEIGHBOR: Number of neighboring clips on each side (default: 1)
+#   CUDA_VISIBLE_DEVICES: Comma-separated physical GPU ids, e.g. 0,1,2,3
 #
 # Prerequisite: the corresponding servers have already been started with start_multi_gpu_servers.sh
 # ============================================================
@@ -13,11 +16,14 @@ set -e
 
 # ============ Configurable Parameters ============
 NUM_GPUS=${1:-8}
+TOP_K_CLIPS=${2:-4}
+NUM_NEIGHBOR=${3:-1}
+VISIBLE_GPUS_ARG=${4:-${CUDA_VISIBLE_DEVICES:-}}
 
 # Project root (PEARL)
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-ANNOTATION_DIR="${PROJECT_ROOT}/data/frame-level/annotations_filtered"
+ANNOTATION_DIR="${PROJECT_ROOT}/data/frame-level/annotations"
 CLIPS_BASE_DIR="${PROJECT_ROOT}/data/frame-level/output_clips"
 CACHE_DIR="${PROJECT_ROOT}/.cache"
 OUTPUT_DIR="${PROJECT_ROOT}/output_results/test/qwen3vl_k4_n1_fps1"
@@ -30,10 +36,26 @@ EMBEDDING_BASE_PORT=5000
 SKIP_EXISTING=true
 # ====================================
 
+GPU_ID_MAP=()
+if [ -n "${VISIBLE_GPUS_ARG}" ]; then
+    IFS=',' read -r -a GPU_ID_MAP <<< "${VISIBLE_GPUS_ARG}"
+    if [ "${NUM_GPUS}" -gt "${#GPU_ID_MAP[@]}" ]; then
+        echo "Error: NUM_GPUS (${NUM_GPUS}) exceeds the number of visible GPUs provided (${#GPU_ID_MAP[@]})"
+        exit 1
+    fi
+else
+    for ((gpu=0; gpu<NUM_GPUS; gpu++)); do
+        GPU_ID_MAP+=("${gpu}")
+    done
+fi
+
 echo "========================================"
 echo "Multi-GPU parallel evaluation script"
 echo "========================================"
 echo "GPU count: ${NUM_GPUS}"
+echo "CUDA_VISIBLE_DEVICES: ${VISIBLE_GPUS_ARG:-<default sequential mapping>}"
+echo "Top-K clips: ${TOP_K_CLIPS}"
+echo "Num neighbor: ${NUM_NEIGHBOR}"
 echo "Annotation directory: ${ANNOTATION_DIR}"
 echo "Clips base directory: ${CLIPS_BASE_DIR}"
 echo "Output directory: ${OUTPUT_DIR}"
@@ -147,6 +169,7 @@ process_gpu() {
     local gpu_id=$1
     local start_idx=$2
     local end_idx=$3
+    local physical_gpu="${GPU_ID_MAP[$gpu_id]}"
     local vllm_port=$((VLLM_BASE_PORT + gpu_id))
     local embedding_port=$((EMBEDDING_BASE_PORT + gpu_id))
     local api_url="http://127.0.0.1:${vllm_port}/v1"
@@ -156,6 +179,7 @@ process_gpu() {
     local fail_count=0
 
     echo "[GPU ${gpu_id}] Processing files ${start_idx} ~ $((end_idx - 1)), total $((end_idx - start_idx))"
+    echo "[GPU ${gpu_id}] Physical GPU: ${physical_gpu}"
     echo "[GPU ${gpu_id}] vLLM API: ${api_url}"
     echo "[GPU ${gpu_id}] Embedding API: ${embedding_url}"
 
@@ -165,11 +189,13 @@ process_gpu() {
 
         echo "[GPU ${gpu_id}] Processing ($((i - start_idx + 1))/$((end_idx - start_idx))): ${filename}"
 
-        python "$PYTHON_SCRIPT" \
+        CUDA_VISIBLE_DEVICES=${physical_gpu} python "$PYTHON_SCRIPT" \
             --annotation_path "$json_file" \
             --clips_base_dir "$CLIPS_BASE_DIR" \
             --cache_dir "$CACHE_DIR" \
             --output_path "$OUTPUT_DIR" \
+            --top_k_clips "$TOP_K_CLIPS" \
+            --num_neighbor "$NUM_NEIGHBOR" \
             --api_base_url "$api_url" \
             --embedding_api_url "$embedding_url" \
             --gpu_id "$gpu_id" \

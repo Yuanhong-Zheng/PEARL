@@ -77,6 +77,10 @@ class ConceptDatabase:
             verbose=True
         )
 
+    def _safe_concept_filename(self, concept_name: str) -> str:
+        """Convert a concept name to a filesystem-safe base filename."""
+        return concept_name.replace(" ", "_")
+
     def _extract_clip(self, video_path: str, start_time: str, end_time: str, output_path: str) -> bool:
         """
         Extract a video clip from the specified time range.
@@ -155,7 +159,7 @@ class ConceptDatabase:
         try:
             if start_time and end_time:
                 # Clip mode: extract a video clip
-                clip_filename = f"{concept_name}.mp4"
+                clip_filename = f"{self._safe_concept_filename(concept_name)}.mp4"
                 target_path = self.frame_dir / clip_filename
                 
                 if not self._extract_clip(video_path, start_time, end_time, str(target_path)):
@@ -174,7 +178,7 @@ class ConceptDatabase:
                 }
             else:
                 # Frame mode: extract a single frame
-                frame_filename = f"{concept_name}.jpg"
+                frame_filename = f"{self._safe_concept_filename(concept_name)}.jpg"
                 target_frame_path = self.frame_dir / frame_filename
                 
                 if not self._extract_frame(video_path, timestamp, str(target_frame_path)):

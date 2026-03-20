@@ -107,12 +107,17 @@ class VideoQAInference:
             concept['retrieval_description'] = generate_distinctive_description(
                 client=temp_client,
                 model_path=model_path,
-                image_path=concept.get('frame_path', ''),
+                media_path=concept.get('frame_path', ''),
                 concept_name=concept.get('concept_name', 'Unknown'),
                 original_description=concept.get('description', ''),
+                concept_type=concept.get('concept_type', 'frame'),
             )
 
         self.concept_db._save_db()
+        self.is_video_level = any(
+            concept.get('concept_type') == 'clip'
+            for concept in self.concept_db.data['concepts']
+        )
         self.concept_retrieval_map = {
             concept.get('concept_name', ''): concept.get('retrieval_description', '')
             for concept in self.concept_db.data['concepts']
@@ -178,9 +183,31 @@ class VideoQAInference:
             Clip info dict, or None if no clip contains the timestamp
         """
         for clip in self.clip_memory.clips_data:
-            if clip['start_time'] <= time_seconds < clip['end_time']:
+            if clip['start_time'] < time_seconds < clip['end_time']:
                 return clip.copy()
         return None
+
+    def _get_effective_question_time(self, time_seconds: float) -> float:
+        """
+        For video-level questions, if the question time lands exactly on a clip
+        end boundary, shift it backward by 1 second to stay inside the clip.
+        Frame-level behavior remains unchanged.
+        """
+        if not self.is_video_level:
+            return time_seconds
+
+        if self.get_clip_at_time(time_seconds) is not None:
+            return time_seconds
+        
+        adjusted_time = max(0.0, time_seconds - 1.0)
+        if self.get_clip_at_time(adjusted_time) is not None:
+            print(
+                f"  Video-level boundary detected at {time_seconds:.2f}s; "
+                f"using {adjusted_time:.2f}s instead"
+            )
+            return adjusted_time
+
+        return time_seconds
     
     
     def replace_concepts_with_descriptions(self, query: str) -> str:
@@ -416,28 +443,29 @@ Requirements:
         concepts_info = [info for name in concepts if (info := self.retrieve_concept_info(name))]
         question_time = qa_item.get('time') or qa_item.get('end_time')
         time_seconds = time_to_seconds(question_time)
+        effective_time_seconds = self._get_effective_question_time(time_seconds)
 
         print(f"\n[Step 3] Retrieving relevant video clips (Top {top_k_clips})...")
         clips_info = self.expand_clips_with_neighbors(
-            self.retrieve_relevant_clips(question, max_time=question_time, top_k=top_k_clips),
-            (current_clip['start_time'] if (current_clip := self.get_clip_at_time(time_seconds)) else max(0, time_seconds - 1)),
+            self.retrieve_relevant_clips(question, max_time=str(effective_time_seconds), top_k=top_k_clips),
+            (current_clip['start_time'] if (current_clip := self.get_clip_at_time(effective_time_seconds)) else max(0, effective_time_seconds - 1)),
         )
 
         print("\n[Step 4] Extracting the current video clip...")
         if current_clip is None:
             print(f"  ⚠ No matching video clip found at {question_time}; using the preceding 1 second as a fallback")
-            clip_start_time = max(0, time_seconds - 1)
+            clip_start_time = max(0, effective_time_seconds - 1)
             clip_id_str = "fallback"
-            print(f"  Fallback clip range: {clip_start_time:.2f}s - {time_seconds:.2f}s")
+            print(f"  Fallback clip range: {clip_start_time:.2f}s - {effective_time_seconds:.2f}s")
         else:
             clip_start_time = current_clip['start_time']
             clip_id_str = str(current_clip['clip_id'])
 
-        current_clip_path = str((self.output_dir / f"qa_{qa_id}_current_{clip_id_str}_{clip_start_time:.2f}_{time_seconds:.2f}.mp4").resolve())
+        current_clip_path = str((self.output_dir / f"qa_{qa_id}_current_{clip_id_str}_{clip_start_time:.2f}_{effective_time_seconds:.2f}.mp4").resolve())
         success = extract_video_clip(
             source_video=self.clip_memory.source_video,
             start_time=clip_start_time,
-            end_time=time_seconds,
+            end_time=effective_time_seconds,
             output_path=current_clip_path,
             verbose=True
         )

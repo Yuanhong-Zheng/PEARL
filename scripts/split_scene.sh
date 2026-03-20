@@ -3,10 +3,10 @@
 # Project root (PEARL)
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-OUTPUT_DIR="${1:-${PROJECT_ROOT}/data/frame-level/output_clips_test}"
+OUTPUT_DIR="${1:-${PROJECT_ROOT}/data/video-level/output_clips}"
 
 # Configure the video directory and Python script path relative to the project root
-VIDEO_DIR="${PROJECT_ROOT}/data/frame-level/videos"
+VIDEO_DIR="${PROJECT_ROOT}/data/video-level/videos"
 SCRIPT_PATH="${PROJECT_ROOT}/video_scene_splitter.py"
 
 echo "Output directory: ${OUTPUT_DIR}"

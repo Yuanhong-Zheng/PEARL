@@ -3,27 +3,16 @@ Generate distinctive descriptions for each concept in concept_db.json.
 These descriptions are used during retrieval to replace custom concept names
 and help the embedding model better understand the query.
 """
-import json
 import argparse
+import json
 from pathlib import Path
+
 from openai import OpenAI
 
 
-def generate_distinctive_description(client, model_path, image_path, concept_name, original_description):
-    """
-    Generate a distinctive description for a concept image.
-    
-    Args:
-        client: OpenAI client
-        model_path: Model path
-        image_path: Image path
-        concept_name: Concept name
-        original_description: Original description
-        
-    Returns:
-        Distinctive description text
-    """
-    prompt = f"""Based on the image and the original description provided, generate a concise visual description of this character/object that focuses on PERMANENT/STABLE features for video clip retrieval.
+def _build_frame_level_prompt(concept_name: str, original_description: str) -> str:
+    """Build the prompt for frame-level concept description generation."""
+    return f"""Based on the image and the original description provided, generate a concise visual description of this character/object that focuses on PERMANENT/STABLE features for video clip retrieval.
 
 Original description: "{original_description}"
 Concept name: {concept_name}
@@ -52,17 +41,84 @@ Requirements:
 - Make it natural enough to replace the concept name in a question
 
 Please provide the distinctive visual description focusing on PERMANENT features:"""
-    
+
+
+def _build_video_level_prompt(concept_name: str, original_description: str) -> str:
+    """Build the prompt for video-level concept description generation."""
+    return f"""Based on the provided video clip and the original description, generate a concise textual description of the specific ACTION or MOVEMENT PATTERN that focuses on the CORE KINEMATICS for video clip retrieval.
+
+Original description: "{original_description}"
+Concept name: {concept_name}
+
+Your task:
+1. Use the original description to understand WHICH specific action or sequence of movements to focus on in the video clip
+2. Generate a description focusing on the STABLE MOVEMENT PATTERNS that define this action, regardless of who is performing it:
+   - Core body movements (e.g., raising arms, squatting, twisting)
+   - Sequence of motions (the order of the gestures)
+   - Body parts involved (hands, legs, torso)
+
+AVOID or minimize:
+- The specific identity, gender, age, or appearance of the person performing the action
+- Background, location, surroundings, or irrelevant objects in the scene
+- Any static features that do not contribute to the dynamic action itself
+
+Requirements:
+- Keep it concise and simple (1 sentence, around 10-20 words)
+- Focus strictly on the dynamic movement pattern that can be performed by different characters
+- Write in English using simple descriptive action terms
+- Use general action phrases (e.g., "the action of swinging arms in a circle", "the action of squatting down and then leaping forward")
+- Make it natural enough to replace the concept name in a question
+
+Please provide the distinctive action description focusing on CORE MOVEMENT PATTERNS:"""
+
+
+def _to_file_url(path_str: str) -> str:
+    """Convert a local path to a standard file:// URL."""
+    return Path(path_str).resolve().as_uri()
+
+
+def generate_distinctive_description(client, model_path, media_path, concept_name, original_description, concept_type="frame"):
+    """
+    Generate a distinctive description for a concept image or clip.
+
+    Args:
+        client: OpenAI client
+        model_path: Model path
+        media_path: Image or video path
+        concept_name: Concept name
+        original_description: Original description
+        concept_type: Concept type, either "frame" or "clip"
+
+    Returns:
+        Distinctive description text
+    """
+    is_video_concept = concept_type == "clip"
+    prompt = (
+        _build_video_level_prompt(concept_name, original_description)
+        if is_video_concept
+        else _build_frame_level_prompt(concept_name, original_description)
+    )
+    media_item = (
+        {
+            "type": "video_url",
+            "video_url": {
+                "url": _to_file_url(media_path),
+            },
+        }
+        if is_video_concept
+        else {
+            "type": "image_url",
+            "image_url": {
+                "url": _to_file_url(media_path),
+            },
+        }
+    )
+
     messages = [
         {
             "role": "user",
             "content": [
-                {
-                    "type": "image_url",
-                    "image_url": {
-                        "url": f"file://{image_path}"
-                    }
-                },
+                media_item,
                 {
                     "type": "text",
                     "text": prompt
@@ -135,28 +191,29 @@ def process_concept_database(
     # Generate a distinctive description for each concept
     for i, concept in enumerate(concepts, 1):
         concept_name = concept.get('concept_name', 'Unknown')
-        frame_path = concept.get('frame_path')
+        media_path = concept.get('frame_path')
+        concept_type = concept.get('concept_type', 'frame')
         original_description = concept.get('description', '')
         
         print(f"[{i}/{len(concepts)}] Processing concept: {concept_name}")
         
-        if not frame_path:
-            print("  ⚠ No frame_path found, skipping\n")
+        if not media_path:
+            print("  ⚠ No media path found, skipping\n")
             skipped_count += 1
             continue
         
         # Convert relative paths to absolute paths
-        frame_path_obj = Path(frame_path)
-        if not frame_path_obj.is_absolute():
+        media_path_obj = Path(media_path)
+        if not media_path_obj.is_absolute():
             # Resolve relative to the directory containing concept_db.json
             db_dir = Path(concept_db_path).parent
-            frame_path = str((db_dir / frame_path).resolve())
+            media_path = str((db_dir / media_path).resolve())
         
-        print(f"  Image path: {frame_path}")
+        print(f"  Media path: {media_path}")
         
-        # Verify the image exists
-        if not Path(frame_path).exists():
-            print("  ✗ Image file does not exist, skipping\n")
+        # Verify the media exists
+        if not Path(media_path).exists():
+            print("  ✗ Media file does not exist, skipping\n")
             skipped_count += 1
             continue
         
@@ -174,9 +231,10 @@ def process_concept_database(
             description = generate_distinctive_description(
                 client=client,
                 model_path=model_path,
-                image_path=frame_path,
+                media_path=media_path,
                 concept_name=concept_name,
-                original_description=original_description
+                original_description=original_description,
+                concept_type=concept_type,
             )
             
             # Store it in the concept entry
