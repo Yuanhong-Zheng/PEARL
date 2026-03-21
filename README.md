@@ -9,7 +9,7 @@
   <a href="https://huggingface.co/datasets/zyh200727/PEARL-Data" style="margin-right: 10px;">
     <img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Datasets-ffd21e" alt="Hugging Face Dataset">
   </a>
-  <a href="https://www.modelscope.cn/datasets/YuanhongZheng/PEARL-Data">
+  <a href="https://www.modelscope.cn/datasets/YuanhongZheng/PEARL-Data" style="margin-right: 10px;">
     <img src="assets/modelscope-badge.svg" alt="ModelScope Dataset">
   </a>
 </p>
