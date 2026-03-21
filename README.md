@@ -54,7 +54,7 @@ pip install -e third_party/Qwen3-VL-Embedding --no-deps
 
 Download the archive from one of the following mirrors:
 
-- [Hugging Face](#)
+- [Hugging Face](https://huggingface.co/datasets/zyh200727/PEARL-Data)
 - [ModelScope](https://www.modelscope.cn/datasets/YuanhongZheng/PEARL-Data)
 
 After downloading, place the split archives under the project root, merge them, and then extract:
