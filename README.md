@@ -1,5 +1,5 @@
 <p align="center">
-  <strong><font size="7">PEARL: Personalized Streaming Video Understanding Model</font></strong>
+  <img src="assets/TITLE.png" alt="PEARL title" width="62%">
 </p>
 
 <p align="center">
@@ -12,6 +12,10 @@
   <a href="https://www.modelscope.cn/datasets/YuanhongZheng/PEARL-Data" style="margin-right: 10px;">
     <img src="assets/modelscope-badge.svg" alt="ModelScope Dataset">
   </a>
+</p>
+
+<p align="center">
+  <strong><font size="6">Personalized Streaming Video Understanding Model</font></strong>
 </p>
 
 ## 📖 Introduction
