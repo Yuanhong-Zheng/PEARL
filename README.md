@@ -10,10 +10,13 @@
     <img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Datasets-ffd21e" alt="Hugging Face Dataset">
   </a>
   <a href="https://www.modelscope.cn/datasets/YuanhongZheng/PEARL-Data">
-    <img src="assets/modelscope.svg" alt="ModelScope icon" height="20" style="vertical-align: middle; margin-right: 4px;">
-    <img src="https://img.shields.io/badge/ModelScope-Datasets-624aff" alt="ModelScope Dataset" style="vertical-align: middle;">
+    <img src="assets/modelscope-badge.svg" alt="ModelScope Dataset">
   </a>
 </p>
+
+## Introduction
+
+PEARL is a benchmark and evaluation framework for personalized streaming video understanding. It focuses on realistic long-form video scenarios with continuous video streams, dynamic concepts, and multi-turn interactions, aiming to better measure how well models track user-specific context and evolving visual content over time.
 
 <p align="center">
   <img src="assets/paper-teaser.png" alt="PEARL teaser" width="92%">
