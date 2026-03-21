@@ -3,14 +3,14 @@
 </h1>
 
 <p align="center">
-  <a href="https://arxiv.org/abs/2507.09446">
-    <img src="https://img.shields.io/badge/arXiv-2507.09446-b31b1b?style=flat-square&logo=arxiv&logoColor=white&labelColor=555555" alt="arXiv">
+  <a href="https://arxiv.org/abs/2507.09446" style="margin-right: 10px;">
+    <img src="https://img.shields.io/badge/arXiv-2507.09446-b31b1b.svg?logo=arXiv" alt="arXiv">
   </a>
-  <a href="https://huggingface.co/datasets/zyh200727/PEARL-Data">
-    <img src="https://img.shields.io/badge/Hugging%20Face-Dataset-fcd022?style=flat-square&logo=huggingface&logoColor=black&labelColor=555555" alt="Hugging Face Dataset">
+  <a href="https://huggingface.co/datasets/zyh200727/PEARL-Data" style="margin-right: 10px;">
+    <img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Datasets-ffd21e" alt="Hugging Face Dataset">
   </a>
   <a href="https://www.modelscope.cn/datasets/YuanhongZheng/PEARL-Data">
-    <img src="https://img.shields.io/badge/ModelScope-Dataset-4f67ff?style=flat-square&labelColor=555555" alt="ModelScope Dataset">
+    <img src="https://img.shields.io/badge/ModelScope-Datasets-624aff" alt="ModelScope Dataset">
   </a>
 </p>
 
