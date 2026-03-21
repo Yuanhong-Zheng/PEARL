@@ -14,9 +14,7 @@
   </a>
 </p>
 
-<p align="center">
-  <span style="font-size: 46px; font-weight: 700;">Personalized Streaming Video Understanding Model</span>
-</p>
+# Personalized Streaming Video Understanding Model
 
 ## 📖 Introduction
 
