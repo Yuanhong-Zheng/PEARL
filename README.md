@@ -16,6 +16,18 @@
 
 <h1 align="center">Personalized Streaming Video Understanding Model</h1>
 
+<p align="center">
+  <a href="">Yuanhong Zheng</a><sup>1,*</sup>, <a href="">Ruichuan An</a><sup>1,*</sup>, <a href="">Xiaopeng Lin</a><sup>1</sup>, <a href="">Yuxing Liu</a><sup>1</sup>, <a href="">Sihan Yang</a><sup>1</sup>, <a href="">Huanyu Zhang</a><sup>3</sup>, <a href="">Haodong Li</a><sup>4</sup>, <a href="">Qintong Zhang</a><sup>1</sup>, <a href="">Renrui Zhang</a><sup>5</sup>, <a href="">Guopeng Li</a><sup>4</sup>, <a href="">YiFan Zhang</a><sup>3,&dagger;</sup>, <a href="">Yuheng Li</a><sup>2,&#9993;</sup>, <a href="">Wentao Zhang</a><sup>1,6,&#9993;</sup>
+</p>
+
+<p align="center">
+  <sup>1</sup>Peking University &nbsp; <sup>2</sup>Adobe &nbsp; <sup>3</sup>CASIA &nbsp; <sup>4</sup>Stepfun &nbsp; <sup>5</sup>CUHK &nbsp; <sup>6</sup>Zhongguancun Academy
+</p>
+
+<p align="center">
+  <sup>*</sup>Equal contribution &nbsp; <sup>&dagger;</sup>Project leader &nbsp; <sup>&#9993;</sup>Corresponding authors
+</p>
+
 > PEARL studies Personalized Streaming Video Understanding (PSVU), a new setting where models must recognize user-defined concepts, localize them at precise timestamps, and answer personalized queries over continuous video streams. To support this task, we introduce PEARL-Bench, the first benchmark for personalized streaming video understanding, and PEARL, a plug-and-play framework with dual-grained memory and concept-aware retrieval algorithm that improves off-the-shelf VLMs without parameter updates.
 
 <p align="center">
