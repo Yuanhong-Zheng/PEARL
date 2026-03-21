@@ -141,8 +141,6 @@ For evaluation, the inference script expects:
 - annotations under `data/frame-level/annotations/`
 - scene clips under `data/frame-level/output_clips/`
 
-> For evaluation, make sure both directories are prepared before starting inference.
-
 ### 2. Start The Model Servers
 
 Launch the VLM server and the embedding server on all GPUs before inference:
