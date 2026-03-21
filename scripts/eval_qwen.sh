@@ -26,7 +26,7 @@ PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ANNOTATION_DIR="${PROJECT_ROOT}/data/frame-level/annotations"
 CLIPS_BASE_DIR="${PROJECT_ROOT}/data/frame-level/output_clips"
 CACHE_DIR="${PROJECT_ROOT}/.cache"
-OUTPUT_DIR="${PROJECT_ROOT}/output_results/test/qwen3vl_k4_n1_fps1"
+OUTPUT_DIR="${PROJECT_ROOT}/output_results/frame-level/qwen3vl_k4_n1_fps1"
 PYTHON_SCRIPT="${PROJECT_ROOT}/video_qa_inference.py"
 
 VLLM_BASE_PORT=22003

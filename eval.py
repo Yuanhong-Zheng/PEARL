@@ -313,7 +313,7 @@ def main():
 
 if __name__ == "__main__":
     # ============ Update Default Parameters Here ============
-    DEFAULT_RESULT_DIR = "output_results/test/qwen3vl_k4_n0_fps1_video_level"
+    DEFAULT_RESULT_DIR = "output_results/frame-level/qwen3vl_k4_n1_fps1"
     DEFAULT_IGNORE_FILE = None
     # ==========================================
     main()
