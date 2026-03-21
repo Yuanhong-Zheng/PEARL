@@ -16,7 +16,7 @@
 
 # Personalized Streaming Video Understanding Model
 
-> Human cognition of new concepts is inherently a streaming process: we continuously recognize new objects or identities and update our memories over time. To bridge the gap between existing static or offline personalization methods and real-time interactive assistants, we propose Personalized Streaming Video Understanding (PSVU), introduce PEARL-Bench, the first benchmark for this setting with 132 videos and 2,173 timestamped annotations, and present PEARL, a training-free plug-and-play framework with dual-grained memory and concept-aware retrieval. Extensive experiments across 8 offline and online models show that PEARL achieves state-of-the-art performance and consistently improves diverse VLM architectures.
+> PEARL studies Personalized Streaming Video Understanding (PSVU), a new setting where models must recognize user-defined concepts, localize them at precise timestamps, and answer personalized queries over continuous video streams. To support this task, we introduce PEARL-Bench, the first benchmark for personalized streaming video understanding, and PEARL, a training-free plug-and-play framework with dual-grained memory and concept-aware retrieval that improves off-the-shelf VLMs without parameter updates.
 
 <p align="center">
   <img src="assets/paper-teaser.png" alt="PEARL teaser" width="92%">
