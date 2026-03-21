@@ -3,6 +3,18 @@
 </h1>
 
 <p align="center">
+  <a href="https://arxiv.org/abs/2507.09446">
+    <img src="https://img.shields.io/badge/arXiv-2507.09446-b31b1b?style=for-the-badge&logo=arxiv&logoColor=white" alt="arXiv">
+  </a>
+  <a href="https://huggingface.co/datasets/zyh200727/PEARL-Data">
+    <img src="https://img.shields.io/badge/Hugging%20Face-Dataset-ffd21e?style=for-the-badge&logo=huggingface&logoColor=black" alt="Hugging Face Dataset">
+  </a>
+  <a href="https://www.modelscope.cn/datasets/YuanhongZheng/PEARL-Data">
+    <img src="https://img.shields.io/badge/ModelScope-Dataset-624aff?style=for-the-badge" alt="ModelScope Dataset">
+  </a>
+</p>
+
+<p align="center">
   <img src="assets/paper-teaser.png" alt="PEARL teaser" width="92%">
 </p>
 <p align="center">
