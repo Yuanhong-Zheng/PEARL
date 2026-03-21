@@ -14,9 +14,7 @@
   </a>
 </p>
 
-<p align="center">
-  <strong><font size="7">Personalized Streaming Video Understanding Model</font></strong>
-</p>
+<h1 align="center">Personalized Streaming Video Understanding Model</h1>
 
 > PEARL studies Personalized Streaming Video Understanding (PSVU), a new setting where models must recognize user-defined concepts, localize them at precise timestamps, and answer personalized queries over continuous video streams. To support this task, we introduce PEARL-Bench, the first benchmark for personalized streaming video understanding, and PEARL, a plug-and-play framework with dual-grained memory and concept-aware retrieval algorithm that improves off-the-shelf VLMs without parameter updates.
 
@@ -59,8 +57,6 @@ pip install -e third_party/qwen-vl-utils --no-deps
 pip install -e third_party/Qwen3-VL-Embedding --no-deps
 ```
 
----
-
 ## 📦 Dataset
 
 <p align="center">
@@ -94,8 +90,6 @@ data/
     videos/
 ```
 
----
-
 ## 🤖 Models
 
 Please download the following models and place them under `models/`:
@@ -103,8 +97,6 @@ Please download the following models and place them under `models/`:
 - `Qwen3-VL-8B-Instruct`
 - `Qwen3-VL-Embedding-2B`
 - `llava-onevision-qwen2-7b-ov-hf` (optional)
-
----
 
 ## 📊 Evaluation
 
@@ -181,14 +173,10 @@ This command reads all `*_evaluation.json` files in the result directory and rep
 - current-time QA accuracy
 - past-time QA accuracy
 
----
-
 ## ✅ TODO
 
 - [ ] Video-Level Data and Evaluation
 - [ ] Live Streaming Demo
-
----
 
 ## 📬 Contact
 
