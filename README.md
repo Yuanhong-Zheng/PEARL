@@ -1,6 +1,6 @@
-<h1 align="center">
-  PEARL: Personalized Streaming Video Understanding Model
-</h1>
+<p align="center">
+  <strong><font size="7">PEARL: Personalized Streaming Video Understanding Model</font></strong>
+</p>
 
 <p align="center">
   <a href="https://arxiv.org/abs/2507.09446" style="margin-right: 10px;">
