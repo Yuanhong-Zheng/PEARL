@@ -157,6 +157,7 @@ By default, the launcher uses:
 
 - `models/Qwen3-VL-8B-Instruct` for `server/qwenvl_flask_server.py`
 - `models/llava-onevision-qwen2-7b-ov-hf` for `server/llava_ov_flask_server.py`
+- `models/Qwen3-VL-Embedding-2B` for `server/embedding_server.py`
 
 ### 3. Run Inference
 
