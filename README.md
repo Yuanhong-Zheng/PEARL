@@ -1,5 +1,4 @@
 <h1 align="center">
-  <img src="assets/logo.png" alt="PEARL logo" width="36" style="vertical-align: middle; margin-right: 10px;">
   PEARL: Personalized Streaming Video Understanding Model
 </h1>
 
