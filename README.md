@@ -178,6 +178,10 @@ This command reads all `*_evaluation.json` files in the result directory and rep
 - [ ] Video-Level Data and Evaluation
 - [ ] Live Streaming Demo
 
+## 📜 License
+
+The dataset and code are released under [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/). Please provide appropriate attribution when using or redistributing this project.
+
 ## 📬 Contact
 
-For any questions or feedback, please open an issue or reach out to us at 202200800358@mail.sdu.edu.cn.
+For any questions or feedback, please open an issue or reach out to us at zyh2022200727@gmail.com.
