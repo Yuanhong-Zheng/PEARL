@@ -94,9 +94,9 @@ data/
 
 Please download the following models and place them under `models/`:
 
-- `Qwen3-VL-8B-Instruct`
-- `Qwen3-VL-Embedding-2B`
-- `llava-onevision-qwen2-7b-ov-hf` (optional)
+- [`Qwen3-VL-8B-Instruct`](https://huggingface.co/Qwen/Qwen3-VL-8B-Instruct)
+- [`Qwen3-VL-Embedding-2B`](https://huggingface.co/Qwen/Qwen3-VL-Embedding-2B)
+- [`llava-onevision-qwen2-7b-ov-hf`](https://huggingface.co/llava-hf/llava-onevision-qwen2-7b-ov-hf) (optional)
 
 ## 📊 Evaluation
 
