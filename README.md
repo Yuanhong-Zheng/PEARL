@@ -4,13 +4,13 @@
 
 <p align="center">
   <a href="https://arxiv.org/abs/2507.09446">
-    <img src="https://img.shields.io/badge/arXiv-2507.09446-b31b1b?style=for-the-badge&logo=arxiv&logoColor=white" alt="arXiv">
+    <img src="https://img.shields.io/badge/arXiv-2507.09446-b31b1b?style=flat-square&logo=arxiv&logoColor=white&labelColor=555555" alt="arXiv">
   </a>
   <a href="https://huggingface.co/datasets/zyh200727/PEARL-Data">
-    <img src="https://img.shields.io/badge/Hugging%20Face-Dataset-ffd21e?style=for-the-badge&logo=huggingface&logoColor=black" alt="Hugging Face Dataset">
+    <img src="https://img.shields.io/badge/Hugging%20Face-Dataset-fcd022?style=flat-square&logo=huggingface&logoColor=black&labelColor=555555" alt="Hugging Face Dataset">
   </a>
   <a href="https://www.modelscope.cn/datasets/YuanhongZheng/PEARL-Data">
-    <img src="https://img.shields.io/badge/ModelScope-Dataset-624aff?style=for-the-badge" alt="ModelScope Dataset">
+    <img src="https://img.shields.io/badge/ModelScope-Dataset-4f67ff?style=flat-square&labelColor=555555" alt="ModelScope Dataset">
   </a>
 </p>
 
