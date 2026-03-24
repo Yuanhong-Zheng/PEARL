@@ -4,7 +4,7 @@
 # Launch one pair of vLLM + Embedding servers on each GPU
 #
 # Usage: bash scripts/start_multi_gpu_servers.sh [NUM_GPUS] [CUDA_VISIBLE_DEVICES]
-#   NUM_GPUS: Number of GPUs to use (default: 4)
+#   NUM_GPUS: Number of GPUs to use (default: 8)
 #   CUDA_VISIBLE_DEVICES: Comma-separated physical GPU ids, e.g. 0,1,2,3
 #
 # Port assignment:
@@ -17,8 +17,8 @@
 set -e
 
 # ============ Configurable Parameters ============
-NUM_GPUS=${1:-4}
-VISIBLE_GPUS_ARG=${2:-${CUDA_VISIBLE_DEVICES:-4,5,6,7}}
+NUM_GPUS=${1:-8}
+VISIBLE_GPUS_ARG=${2:-${CUDA_VISIBLE_DEVICES:-}}
 
 VLLM_BASE_PORT=22003
 EMBEDDING_BASE_PORT=5000
