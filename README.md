@@ -134,7 +134,7 @@ Run the scene splitting script first:
 bash scripts/split_scene.sh
 ```
 
-This script scans `data/frame-level/videos/` for `.mp4` files and invokes `video_scene_splitter.py` to generate scene clips and clip metadata for each video.
+This script scans `data/frame-level/videos/` for `.mp4` files and invokes `video_scene_splitter.py` to generate scene clips and clip metadata for each video (we recommend using the pre-segmented clips provided in the dataset directly).
 
 For evaluation, the inference script expects:
 
