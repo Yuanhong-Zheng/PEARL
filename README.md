@@ -3,8 +3,8 @@
 </p>
 
 <p align="center">
-  <a href="https://arxiv.org/abs/2507.09446" style="margin-right: 10px;">
-    <img src="https://img.shields.io/badge/arXiv-2507.09446-b31b1b.svg?logo=arXiv" alt="arXiv">
+  <a href="https://arxiv.org/abs/2603.20422" style="margin-right: 10px;">
+    <img src="https://img.shields.io/badge/arXiv-2603.20422-b31b1b.svg?logo=arXiv" alt="arXiv">
   </a>
   <a href="https://huggingface.co/datasets/zyh200727/PEARL-Data" style="margin-right: 10px;">
     <img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Datasets-ffd21e" alt="Hugging Face Dataset">
