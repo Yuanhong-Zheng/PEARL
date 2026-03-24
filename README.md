@@ -189,6 +189,22 @@ This command reads all `*_evaluation.json` files in the result directory and rep
 - [ ] Video-Level Data and Evaluation
 - [ ] Live Streaming Demo
 
+## 📚 Citation
+
+If you find our work helpful, please cite our paper:
+
+```bibtex
+@article{zheng2026pearl,
+  title={PEARL: Personalized Streaming Video Understanding Model},
+  author={Zheng, Yuanhong and An, Ruichuan and Lin, Xiaopeng and Liu, Yuxing and Yang, Sihan and Zhang, Huanyu and Li, Haodong and Zhang, Qintong and Zhang, Renrui and Li, Guopeng and Zhang, Yifan and Li, Yuheng and Zhang, Wentao},
+  journal={arXiv preprint arXiv:2603.20422},
+  year={2026},
+  archivePrefix={arXiv},
+  eprint={2603.20422},
+  primaryClass={cs.CV}
+}
+```
+
 ## 📜 License
 
 The dataset and code are released under [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/). Please provide appropriate attribution when using or redistributing this project.
