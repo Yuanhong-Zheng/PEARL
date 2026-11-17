@@ -104,7 +104,8 @@ def main():
         cache_path = Path(args.document_cache)
         manifest = read_json(cache_path.parent / "manifest.json")
         identity = manifest["identity"]
-        if identity["model"] != str(Path(args.model).resolve()) or identity["config_sha256"] != sha256_file(Path(args.model) / "config.json"):
+        # Bind the checkpoint by content (config hash here, recomputed documents below), not by its local path.
+        if identity["config_sha256"] != sha256_file(Path(args.model) / "config.json"):
             raise ValueError("Document cache was built with a different base checkpoint")
         if manifest["samples_sha256"] != sha256_file(args.samples) or manifest["cache_sha256"] != sha256_file(cache_path):
             raise ValueError("Document cache or frozen dataset hash changed")

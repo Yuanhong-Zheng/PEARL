@@ -146,7 +146,7 @@ pip install -e training --no-deps
 
 ### PSVU-Bench
 
-Download [PSVU-Bench](https://huggingface.co/datasets/zyh200727/PSVU-Bench) into `data/`:
+Download [PSVU-Bench](https://huggingface.co/datasets/zyh200727/PSVU-Bench) (mirror: [ModelScope](https://www.modelscope.cn/datasets/YuanhongZheng/PSVU-Bench)) into `data/`:
 
 ```bash
 huggingface-cli download zyh200727/PSVU-Bench --repo-type dataset --local-dir data
@@ -177,7 +177,16 @@ Each annotation file is a list of videos with a `video_path` and a list of `time
 
 ### PSVU-10K
 
-[PSVU-10K](https://huggingface.co/datasets/zyh200727/PSVU-10K) holds the 10k verified questions used to train PEARL (9k for training and 1k for validation). The source videos come from YouTube. Follow the dataset card to obtain the videos and build the frozen training snapshot used in the Training section below, and see [training/README.md](training/README.md) for how PSVU-10K was constructed.
+[PSVU-10K](https://huggingface.co/datasets/zyh200727/PSVU-10K) (mirror: [ModelScope](https://www.modelscope.cn/datasets/YuanhongZheng/PSVU-10K)) holds the 10k verified questions used to train PEARL (9k for training and 1k for validation). Besides the question annotations (`train.jsonl`, `val.jsonl`), it provides `PSVU-10K-train/`, a ready-to-train snapshot with the 1 FPS frames of every clip the questions use, the samples, the precomputed clip embeddings and the cached retrieval queries:
+
+```bash
+huggingface-cli download zyh200727/PSVU-10K --repo-type dataset --include "PSVU-10K-train/*" --local-dir data/PSVU-10K
+cd data/PSVU-10K/PSVU-10K-train
+sha256sum -c SHA256SUMS
+for f in frames-*.tar; do tar -xf "$f"; done    # creates frames/ (549,376 JPEGs, 13.2 GB)
+```
+
+See [training/README.md](training/README.md) for how PSVU-10K was constructed.
 
 ## 🤖 Models
 
@@ -188,7 +197,7 @@ Download the base checkpoints into `models/`:
 - [`Qwen2-VL-7B-Instruct`](https://huggingface.co/Qwen/Qwen2-VL-7B-Instruct) (optional)
 - [`llava-onevision-qwen2-7b-ov-hf`](https://huggingface.co/llava-hf/llava-onevision-qwen2-7b-ov-hf) (optional)
 
-The LoRA adapters trained on PSVU-10K:
+The LoRA adapters trained on PSVU-10K (also on ModelScope: [`PEARL-Qwen3-VL-8B-LoRA`](https://www.modelscope.cn/models/YuanhongZheng/PEARL-Qwen3-VL-8B-LoRA), [`PEARL-Retriever-Qwen3-VL-Embedding-2B-LoRA`](https://www.modelscope.cn/models/YuanhongZheng/PEARL-Retriever-Qwen3-VL-Embedding-2B-LoRA)):
 
 | Adapter | Base model | Component |
 | --- | --- | --- |
@@ -293,7 +302,7 @@ Training uses 8 GPUs and the same question-answering prompt as evaluation. Hyper
 | Loss | multi-positive contrastive, temperature 0.07 | cross-entropy on the answer |
 | Max input length | 8,192 tokens | 8,192 tokens |
 
-With a frozen PSVU-10K snapshot `<frozen>` (`samples.jsonl`, `document_embeddings.pt` and `release_text_queries.json`), train the two adapters into a run folder `<run>`:
+With the extracted snapshot `<frozen>` (e.g. `data/PSVU-10K/PSVU-10K-train`, see [PSVU-10K](#psvu-10k)), train the two adapters into a run folder `<run>`:
 
 ```bash
 bash scripts/train_retriever.sh <frozen> <run>     # writes <run>/retrieval
@@ -321,7 +330,7 @@ If you find our work helpful, please cite our paper:
 ## 📜 License
 
 - **Code**: the code in this repository is released under the [MIT License](LICENSE).
-- **Data**: the PSVU-Bench and PSVU-10K annotations and metadata, and the rendered synthetic videos created by us, are released under [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/). Videos from third-party sources remain subject to their original terms.
+- **Data**: the PSVU-Bench and PSVU-10K annotations and metadata, and the rendered synthetic videos created by us, are released under [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/). Videos and frames from third-party sources remain subject to their original terms.
 - **Model weights**: the trained LoRA adapters are released under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0), the license of their base models.
 - **Third-party code**: `third_party/qwen-vl-utils` and `third_party/Qwen3-VL-Embedding` keep their Apache License 2.0; see the `LICENSE` and `NOTICE` files in each folder.
 

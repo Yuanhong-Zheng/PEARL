@@ -82,6 +82,10 @@ before training.
 Both runs use 8 GPUs, an effective batch size of 8, AdamW (weight decay 0.01), gradient
 clipping at 1.0, LoRA rank 16 (alpha 32, dropout 0.05), BF16 and seed 42.
 
+Frame paths in the released snapshot's `samples.jsonl` are relative to the snapshot root, so
+run both commands from `<frozen>` with `PYTHONPATH=<repo>/training/src`, as
+`../scripts/train_retriever.sh` and `../scripts/train_reader.sh` do.
+
 Retriever (query side only; clip embeddings stay at the frozen base encoder):
 
 ```bash

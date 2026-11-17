@@ -14,7 +14,7 @@ import time
 from types import MappingProxyType
 
 from .io import read_json, read_jsonl, sha256_file, write_json
-from .released_text_query import (contract_identity, description_request, digest,
+from .released_text_query import (_visible_input, contract_identity, description_request, digest,
                                  execute_request, rewrite_request, text_query_messages)
 
 PROTOCOL = "pearl-released-text-query-cache-v1"
@@ -87,13 +87,16 @@ def visible_input(sample, *, model_path, release_root=None):
         if not all(isinstance(x, str) and x for x in (name, image, description)) or name in names:
             raise ValueError("Registered concepts need unique names and explicit frame/description inputs")
         names.add(name)
+        # Bind the path as written in samples.jsonl plus its pixels, so a snapshot with
+        # relative frame paths keeps its cache wherever it is stored.
         path = Path(image).resolve(strict=True)
-        concepts.append({"name": name, "image": str(path), "pixel_sha256": sha256_file(path),
+        concepts.append({"name": name, "image": image, "pixel_sha256": sha256_file(path),
                          "description": description, "concept_type": concept.get("concept_type", "frame")})
     return {"question_stem": stem.fallback_text, "concepts": concepts}
 
 
-def cache_plan(samples_path, helper_model, *, release_root=None):
+def cache_plan(samples_path, helper_model, *, release_root=None, base_helper=None):
+    """`base_helper` reuses a recorded checkpoint identity instead of hashing a local checkpoint."""
     samples_path = Path(samples_path).resolve(strict=True)
     sample_bytes = samples_path.read_bytes()
     samples = [json.loads(line) for line in sample_bytes.splitlines() if line.strip()]
@@ -101,7 +104,7 @@ def cache_plan(samples_path, helper_model, *, release_root=None):
     chosen = {sid: sample for sid, sample in indexed.items() if sample["task"] == "past"}
     if not chosen:
         raise ValueError("A retrieval query cache needs past training/validation samples")
-    model = checkpoint_identity(helper_model)
+    model = checkpoint_identity(helper_model) if base_helper is None else base_helper
     contract = contract_identity(release_root)
     bindings = {sid: digest(visible_input(sample, model_path=model["model_path"], release_root=release_root))
                 for sid, sample in chosen.items()}
@@ -111,6 +114,13 @@ def cache_plan(samples_path, helper_model, *, release_root=None):
         "helper_contract_sha256": digest(contract), "base_helper_sha256": digest(model)}
     _no_oracle_keys(identity)
     return identity, chosen
+
+
+def _portable(request):
+    """Request record without local path spelling: file URLs become pixel hashes
+    (`_visible_input`) and the hash of the raw wire payload is left out."""
+    payload = None if request.payload is None else _visible_input(request.payload)
+    return payload, {key: value for key, value in request.metadata.items() if key != "request_payload_sha256"}
 
 
 def _operation(request, executor, *, identity, memo, work_dir):
@@ -129,7 +139,9 @@ def _operation(request, executor, *, identity, memo, work_dir):
                     "payload": request.payload, "metadata": request.metadata,
                     "error_type": type(error).__name__, "error": str(error)})
             raise
-        operation = {"payload": request.payload, "metadata": request.metadata,
+        payload, metadata = _portable(request)
+        receipt = {name: value for name, value in receipt.items() if name != "request_payload_sha256"}
+        operation = {"payload": payload, "metadata": metadata,
                      "identity_sha256": request.identity_sha256, "text": text, "receipt": receipt}
         _no_oracle_keys(operation)
         memo[key] = operation
@@ -141,8 +153,9 @@ def _operation(request, executor, *, identity, memo, work_dir):
 
 
 def _check_operation(operation, request, *, execution_kind):
+    payload, metadata = _portable(request)
     if (set(operation) != {"payload", "metadata", "identity_sha256", "text", "receipt"}
-            or operation["payload"] != request.payload or operation["metadata"] != request.metadata
+            or operation["payload"] != payload or operation["metadata"] != metadata
             or operation["identity_sha256"] != request.identity_sha256):
         raise ValueError("Cached helper operation differs from the original released request")
     text, receipt = operation["text"], operation["receipt"]
@@ -150,7 +163,7 @@ def _check_operation(operation, request, *, execution_kind):
         raise ValueError("A helper operation needs its structured receipt")
     if not isinstance(text, str) or not text.strip() or text != text.strip():
         raise ValueError("Cached query helper returned invalid text")
-    expected = {**request.metadata, "kind": request.kind, "api_request_made": request.payload is not None,
+    expected = {**metadata, "kind": request.kind, "api_request_made": request.payload is not None,
                 "response_text_sha256": digest(text), "call": receipt.get("call")}
     if receipt != expected:
         raise ValueError("Query-cache response/receipt binding changed")
@@ -248,7 +261,10 @@ def load_text_query_cache(path, samples_path, *, samples=None, release_root=None
         raise ValueError("Training requires a completed known query cache")
     if manifest.get("execution_kind") != "loopback_base_helper" and not (allow_test_cache and manifest.get("execution_kind") == "injected_cpu_test"):
         raise ValueError("CPU-test query outputs cannot be used for actual training")
-    expected, file_samples = cache_plan(samples_path, manifest["base_helper"]["model_path"], release_root=release_root)
+    # The base helper only produced the cached text; training checks its recorded identity
+    # and does not need that checkpoint locally.
+    expected, file_samples = cache_plan(samples_path, manifest["base_helper"]["model_path"], release_root=release_root,
+                                        base_helper=manifest["base_helper"])
     if set(manifest) != set(expected) | {"execution_kind", "status", "queries"}:
         raise ValueError("Invalid query cache manifest fields")
     for key, value in expected.items():

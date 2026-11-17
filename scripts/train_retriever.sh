@@ -28,7 +28,8 @@ RUN_DIR="$(cd "$2" && pwd)"
 EMBEDDING_MODEL="$(cd "${EMBEDDING_MODEL:-${PROJECT_ROOT}/models/Qwen3-VL-Embedding-2B}" && pwd)"
 
 export PYTHONPATH="${PROJECT_ROOT}/training/src${PYTHONPATH:+:${PYTHONPATH}}"
-cd "${PROJECT_ROOT}/training"
+# Frame paths in samples.jsonl are relative to the snapshot root.
+cd "${FROZEN_DIR}"
 
 accelerate launch --multi_gpu --num_processes "${NUM_GPUS}" --num_machines 1 --mixed_precision bf16 \
     --dynamo_backend no --module pearl_training.train_retrieval \
