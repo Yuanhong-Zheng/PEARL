@@ -1,0 +1,11 @@
+# Training dependencies, installed on top of requirements.txt:
+#   pip install -r requirements.txt -r requirements-train.txt
+#   pip install -e third_party/qwen-vl-utils --no-deps
+#   pip install -e training --no-deps
+# Also needed to serve the trained LoRA adapters (scripts/start_lora_servers.sh).
+# Fetching the PSVU-10K source videos from an S3-compatible store additionally needs
+# training/requirements-narrative-s3.txt.
+peft==0.18.1
+accelerate==1.12.0
+torch==2.9.0
+transformers==4.57.5

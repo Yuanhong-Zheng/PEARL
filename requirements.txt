@@ -173,7 +173,7 @@ rignore==0.7.6
 rpds-py==0.30.0
 safetensors==0.7.0
 scipy==1.17.0
-scenedetect
+scenedetect<0.7  # video_scene_splitter.py uses the VideoManager API removed in 0.7
 sentencepiece==0.2.1
 sentry-sdk==2.51.0
 setproctitle==1.3.7

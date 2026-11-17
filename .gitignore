@@ -1,20 +1,29 @@
-/.cache/
-/output_results/
-/scripts/tmp/
-/scripts/eval_qwen_debug.sh
-/scripts/eval_qwen_debug2.sh
-/scripts/eval_qwen_video_level.sh
-/server/logs/
-/tmp/
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
 *.egg-info/
-**/.git_bak_nested_repo/
+build/
+dist/
+.pytest_cache/
 
+# Data, checkpoints and run outputs
 /data/*
 !/data/.gitkeep
-
 /models/*
 !/models/.gitkeep
+/.cache/
+/cache/
+/output_results/
+/server/logs/
+/tmp/
+/scripts/tmp/
 
-/paper/
+# Training working directories
+/training/data/
+/training/outputs/
+/shared-fleet/
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
