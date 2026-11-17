@@ -5,28 +5,42 @@
 #
 # Usage: bash scripts/eval_qwen.sh [NUM_GPUS] [TOP_K_CLIPS] [NUM_NEIGHBOR] [CUDA_VISIBLE_DEVICES]
 #   NUM_GPUS: Number of GPUs to use (default: 8, should match start_multi_gpu_servers.sh)
-#   TOP_K_CLIPS: Number of retrieved clips (default: 4)
-#   NUM_NEIGHBOR: Number of neighboring clips on each side (default: 1)
+#   TOP_K_CLIPS: Number of retrieved clips (default: 4, from configs/inference.env)
+#   NUM_NEIGHBOR: Number of neighboring clips on each side (default: 1, from configs/inference.env)
 #   CUDA_VISIBLE_DEVICES: Comma-separated physical GPU ids, e.g. 0,1,2,3
 #
-# Prerequisite: the corresponding servers have already been started with start_multi_gpu_servers.sh
+# Environment variables:
+#   SPLIT: PSVU-Bench split under data/ (default: frame-level; the Action split is video-level)
+#   RUN_NAME: Output folder name (default: qwen3vl_k4_n1_fps1)
+#   OUTPUT_DIR: Output directory (default: output_results/${SPLIT}/${RUN_NAME})
+#   CACHE_DIR: Concept and clip-embedding cache (default: .cache)
+#
+# Prerequisite: the corresponding servers have already been started with
+# start_multi_gpu_servers.sh (or start_lora_servers.sh for the trained adapters)
 # ============================================================
 
 set -e
 
 # ============ Configurable Parameters ============
-NUM_GPUS=${1:-8}
-TOP_K_CLIPS=${2:-4}
-NUM_NEIGHBOR=${3:-1}
-VISIBLE_GPUS_ARG=${4:-${CUDA_VISIBLE_DEVICES:-}}
-
 # Project root (PEARL)
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-ANNOTATION_DIR="${PROJECT_ROOT}/data/frame-level/annotations"
-CLIPS_BASE_DIR="${PROJECT_ROOT}/data/frame-level/output_clips"
-CACHE_DIR="${PROJECT_ROOT}/.cache"
-OUTPUT_DIR="${PROJECT_ROOT}/output_results/frame-level/qwen3vl_k4_n1_fps1"
+# Defaults for TOP_K_CLIPS and NUM_NEIGHBOR
+if [ -f "${PROJECT_ROOT}/configs/inference.env" ]; then
+    source "${PROJECT_ROOT}/configs/inference.env"
+fi
+
+NUM_GPUS=${1:-8}
+TOP_K_CLIPS=${2:-${TOP_K_CLIPS:-4}}
+NUM_NEIGHBOR=${3:-${NUM_NEIGHBOR:-1}}
+VISIBLE_GPUS_ARG=${4:-${CUDA_VISIBLE_DEVICES:-}}
+
+SPLIT=${SPLIT:-frame-level}
+RUN_NAME=${RUN_NAME:-qwen3vl_k4_n1_fps1}
+ANNOTATION_DIR="${PROJECT_ROOT}/data/${SPLIT}/annotations"
+CLIPS_BASE_DIR="${PROJECT_ROOT}/data/${SPLIT}/output_clips"
+CACHE_DIR=${CACHE_DIR:-"${PROJECT_ROOT}/.cache"}
+OUTPUT_DIR=${OUTPUT_DIR:-"${PROJECT_ROOT}/output_results/${SPLIT}/${RUN_NAME}"}
 PYTHON_SCRIPT="${PROJECT_ROOT}/video_qa_inference.py"
 
 VLLM_BASE_PORT=22003

@@ -1,12 +1,18 @@
 #!/bin/bash
+# Split every .mp4 in data/${SPLIT}/videos/ into scene clips with video_scene_splitter.py.
+#
+# Usage: SPLIT=frame-level bash scripts/split_scene.sh [OUTPUT_DIR]
+#   SPLIT: PSVU-Bench split under data/ (default: video-level, the Action split)
+#   OUTPUT_DIR: Clip output directory (default: data/${SPLIT}/output_clips)
 
 # Project root (PEARL)
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-OUTPUT_DIR="${1:-${PROJECT_ROOT}/data/video-level/output_clips}"
+SPLIT=${SPLIT:-video-level}
+OUTPUT_DIR="${1:-${PROJECT_ROOT}/data/${SPLIT}/output_clips}"
 
 # Configure the video directory and Python script path relative to the project root
-VIDEO_DIR="${PROJECT_ROOT}/data/video-level/videos"
+VIDEO_DIR="${PROJECT_ROOT}/data/${SPLIT}/videos"
 SCRIPT_PATH="${PROJECT_ROOT}/video_scene_splitter.py"
 
 echo "Output directory: ${OUTPUT_DIR}"

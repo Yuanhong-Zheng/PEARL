@@ -7,6 +7,12 @@
 #   NUM_GPUS: Number of GPUs to use (default: 8)
 #   CUDA_VISIBLE_DEVICES: Comma-separated physical GPU ids, e.g. 0,1,2,3
 #
+# Environment variables:
+#   VLLM_SCRIPT_REL: server/qwenvl_flask_server.py (default, Qwen-VL models) or
+#                    server/llava_ov_flask_server.py (LLaVA-OneVision)
+#   QWENVL_MODEL_PATH: default models/Qwen3-VL-8B-Instruct (e.g. models/Qwen2-VL-7B-Instruct)
+#   LLAVA_MODEL_PATH: default models/llava-onevision-qwen2-7b-ov-hf
+#
 # Port assignment:
 #   GPU 0: vLLM -> 22003, Embedding -> 5000
 #   GPU 1: vLLM -> 22004, Embedding -> 5001
@@ -23,13 +29,13 @@ VISIBLE_GPUS_ARG=${2:-${CUDA_VISIBLE_DEVICES:-}}
 VLLM_BASE_PORT=22003
 EMBEDDING_BASE_PORT=5000
 
-QWENVL_MODEL_PATH="models/Qwen3-VL-8B-Instruct"
-LLAVA_MODEL_PATH="models/llava-onevision-qwen2-7b-ov-hf"
+QWENVL_MODEL_PATH=${QWENVL_MODEL_PATH:-"models/Qwen3-VL-8B-Instruct"}
+LLAVA_MODEL_PATH=${LLAVA_MODEL_PATH:-"models/llava-onevision-qwen2-7b-ov-hf"}
 
 # Project root (PEARL)
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # Script paths relative to the project root
-VLLM_SCRIPT_REL="server/qwenvl_flask_server.py"
+VLLM_SCRIPT_REL=${VLLM_SCRIPT_REL:-"server/qwenvl_flask_server.py"}
 # VLLM_SCRIPT_REL="server/llava_ov_flask_server.py"
 EMBEDDING_SCRIPT_REL="server/embedding_server.py"
 LOG_DIR_REL="server/logs"
