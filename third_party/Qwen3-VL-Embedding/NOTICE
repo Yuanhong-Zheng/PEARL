@@ -1,0 +1,5 @@
+src/models/qwen3_vl_embedding.py and LICENSE are unmodified copies from the public
+QwenLM Qwen3-VL-Embedding repository (https://github.com/QwenLM/Qwen3-VL-Embedding,
+commit 6da1dfa201), licensed under the Apache License 2.0. Only the model file imported by
+server/embedding_server.py and by the training code is included; the full repository
+(evaluation scripts, examples) is available upstream.

@@ -392,14 +392,14 @@ def main():
     parser.add_argument(
         "--video_path",
         type=str,
-        default="/mnt/shared-storage-user/mineru2-shared/zqt/zqt2/PSVBench/data/video-level/videos/jianshen1.mp4",
+        default="/path/to/videos/jianshen1.mp4",
         help="Input video path"
     )
     
     parser.add_argument(
         "--output_dir",
         type=str,
-        default="/mnt/shared-storage-user/mineru2-shared/zqt/zqt2/PSVBench/0121/output_clips",
+        default="/path/to/output_clips",
         help="Output directory, default: ./output_clips"
     )
     

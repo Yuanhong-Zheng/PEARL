@@ -364,8 +364,8 @@ def main():
     parser.add_argument(
         "--model_path",
         type=str,
-        # default="/mnt/shared-storage-user/mineru2-shared/zqt/zqt2/ReKV/model_zoo/llava-onevision-qwen2-7b-ov-hf",
-        default="/mnt/shared-storage-user/mineru2-shared/zqt/zqt2/models/llava-onevision-qwen2-0.5b-ov-hf",
+        # default="/path/to/models/llava-onevision-qwen2-7b-ov-hf",
+        default="/path/to/models/llava-onevision-qwen2-0.5b-ov-hf",
         help="Model path"
     )
     parser.add_argument(

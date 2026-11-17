@@ -163,7 +163,6 @@ class VideoQAInference:
         """
         if (concept_info := self.concept_db.query_by_name(concept_name)) is None:
             print(f"  ⚠ Warning: concept '{concept_name}' was not found in the database")
-            import ipdb;ipdb.set_trace()
             return None
 
         if (frame_path := concept_info.get("frame_path")) and not Path(frame_path).is_absolute():

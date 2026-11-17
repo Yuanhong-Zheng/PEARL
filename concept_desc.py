@@ -141,7 +141,7 @@ def generate_distinctive_description(client, model_path, media_path, concept_nam
 def process_concept_database(
     concept_db_path: str,
     api_base_url: str = "http://127.0.0.1:22003/v1",
-    model_path: str = "/mnt/shared-storage-user/mineru2-shared/zqt/zqt2/models/OpenGVLab/InternVL3_5-8B",
+    model_path: str = "/path/to/models/InternVL3_5-8B",
     force_regenerate: bool = False
 ):
     """
@@ -275,7 +275,7 @@ def parse_args():
     parser.add_argument(
         "--concept_db_path",
         type=str,
-        default="/mnt/shared-storage-user/mineru2-shared/zqt/zqt2/PSVBench/0121/.cache/5limi/concept_db.json",
+        default="/path/to/cache/concept_db.json",
         help="Path to concept_db.json (default: ./.cache/concept_db.json)"
     )
     parser.add_argument(
@@ -287,7 +287,7 @@ def parse_args():
     parser.add_argument(
         "--model_path",
         type=str,
-        default="/mnt/shared-storage-user/mineru2-shared/zqt/zqt2/models/OpenGVLab/InternVL3_5-8B",
+        default="/path/to/models/InternVL3_5-8B",
         help="Model path"
     )
     parser.add_argument(

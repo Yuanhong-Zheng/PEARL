@@ -1,0 +1,11 @@
+This directory is a copy of qwen-vl-utils 0.0.14 (Qwen Team), distributed on PyPI and
+maintained in the public QwenLM Qwen3-VL repository (qwen-vl-utils/), licensed under the
+Apache License 2.0. LICENSE is the license file of that repository.
+
+Modified file: src/qwen_vl_utils/vision_process.py
+  - default video sampling rate FPS changed from 2.0 to 1.0 (PEARL processes streams at 1 FPS);
+  - smart_nframes: the requested number of frames is clamped to the number of frames in the
+    video (rounded down to a multiple of FRAME_FACTOR), with a warning;
+  - fetch_video: prints the number of sampled frames, the start/end frame and the sampled
+    indices; one commented-out debugger line.
+All other files are unmodified.

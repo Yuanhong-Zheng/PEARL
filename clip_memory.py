@@ -457,7 +457,7 @@ class ClipMemory:
 def main():
     """Example usage."""
     # Initialize the memory system
-    json_path = "/mnt/shared-storage-user/mineru2-shared/zqt/zqt2/PSVBench/0121/output_clips/chunwu_middle/chunwu_middle_clips_info.json"
+    json_path = "/path/to/output_clips/chunwu_middle/chunwu_middle_clips_info.json"
     
     # Example 1: retrieve using text-description embeddings (default)
     print("=" * 100)

@@ -24,7 +24,7 @@ class ConceptDatabase:
     - Supports insertion and query operations
     """
     
-    def __init__(self, db_path: str = "/mnt/shared-storage-user/mineru2-shared/zqt/zqt2/PSVBench/0121/.cache/concept_db.json", frame_dir: str = "/mnt/shared-storage-user/mineru2-shared/zqt/zqt2/PSVBench/0121/.cache"):
+    def __init__(self, db_path: str = "/path/to/cache/concept_db.json", frame_dir: str = "/path/to/cache"):
         """
         Initialize the database.
         
@@ -377,8 +377,8 @@ if __name__ == "__main__":
     print("=" * 80)
     
     # Configure paths
-    base_cache_dir = Path("/mnt/shared-storage-user/mineru2-shared/zqt/zqt2/PSVBench/0121/.cache")
-    annotation_file = Path("/mnt/shared-storage-user/mineru2-shared/zqt/zqt2/PSVBench/data/annotations/apartment5.json")
+    base_cache_dir = Path("/path/to/cache")
+    annotation_file = Path("/path/to/annotations/apartment5.json")
     
     # Check whether the file exists
     if not annotation_file.exists():
