@@ -1,0 +1,20 @@
+{
+  "provider": "local_vllm",
+  "base_url": "http://127.0.0.1:28790/v1",
+  "model": "Qwen3.8-Flash-Next",
+  "allowed_tasks": ["visual_annotation", "visual_generation", "visual_verification", "visual_ablation"],
+  "dataset_target": {"train": 9000, "validation": 1000},
+  "max_vision_requests": 200000,
+  "max_concurrent_requests": 256,
+  "request_retries": 5,
+  "max_output_tokens_by_task": {
+    "visual_annotation": 32768,
+    "visual_generation": 32768,
+    "visual_verification": 32768,
+    "visual_ablation": 32768
+  },
+  "temperature": 1.0,
+  "enable_thinking": true,
+  "reasoning_effort": "xhigh",
+  "task_scope": "User-approved continuation after the500-group training/evaluation stage to10000 cumulative qualified groups; retain all500 groups and7061 spent local calls. Local Flash-Next only, no paid API. Original V4 gates and64-second windows, no Action concepts, benchmark-source overlap allowed, source-work-disjoint new training/validation. The200000 request ceiling is cumulative across inherited ledgers and retries."
+}
